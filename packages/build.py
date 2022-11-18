@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import shutil
 import subprocess
+import sys
 
 from copy import deepcopy
 from urllib.error import HTTPError
@@ -228,7 +229,7 @@ def add_file_to_repo(file_path: str, repo_name: str, arch: Arch, remove_original
         target_file,
     ]
     logging.debug(f'repo: running cmd: {cmd}')
-    result = run_cmd(cmd)
+    result = run_cmd(cmd, stderr=sys.stdout)
     assert isinstance(result, subprocess.CompletedProcess)
     if result.returncode != 0:
         raise Exception(f'Failed add package {target_file} to repo {repo_name}')
@@ -474,7 +475,7 @@ def setup_sources(package: Pkgbuild, lazy: bool = True):
     assert config.runtime.arch
     chroot = setup_build_chroot(config.runtime.arch)
     logging.info(f'{package.path}: Setting up sources with makepkg')
-    result = chroot.run_cmd(makepkg_setup, cwd=dir, switch_user='kupfer')
+    result = chroot.run_cmd(makepkg_setup, cwd=dir, switch_user='kupfer', stderr=sys.stdout)
     assert isinstance(result, subprocess.CompletedProcess)
     if result.returncode != 0:
         raise Exception(f'{package.path}: Failed to setup sources, exit code: {result.returncode}')
@@ -584,6 +585,7 @@ def build_package(
         inner_env=env,
         cwd=os.path.join(CHROOT_PATHS['pkgbuilds'], package.path),
         switch_user=build_user,
+        stderr=sys.stdout,
     )
     assert isinstance(result, subprocess.CompletedProcess)
     if result.returncode != 0:
@@ -829,6 +831,6 @@ def build_enable_qemu_binfmt(arch: Arch, repo: Optional[dict[str, Pkgbuild]] = N
             assert p.startswith(hostdir)
             _files.append(os.path.join(CHROOT_PATHS['packages'], p[len(hostdir):].lstrip('/')))
         pkgfiles = _files
-    runcmd(['pacman', '-U', '--noconfirm', '--needed'] + pkgfiles)
+    runcmd(['pacman', '-U', '--noconfirm', '--needed'] + pkgfiles, stderr=sys.stdout)
     binfmt_register(arch, chroot=native_chroot)
     _qemu_enabled[arch] = True
