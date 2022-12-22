@@ -11,6 +11,7 @@ from logger import color_option, logging, quiet_option, setup_logging, verbose_o
 from wrapper import get_wrapper_type, enforce_wrap, nowrapper_option
 from progressbar import progress_bars_option
 
+from binfmt.cli import cmd_binfmt
 from config.cli import config, config_option, cmd_config
 from packages.cli import cmd_packages
 from flavours.cli import cmd_flavours
@@ -77,6 +78,7 @@ def main():
         exit(1)
 
 
+cli.add_command(cmd_binfmt)
 cli.add_command(cmd_cache)
 cli.add_command(cmd_chroot)
 cli.add_command(cmd_config)
