@@ -9,7 +9,7 @@ from copy import deepcopy
 from urllib.error import HTTPError
 from typing import Iterable, Iterator, Optional
 
-from binfmt import register as binfmt_register, binfmt_is_registered
+from binfmt import register as binfmt_register
 from constants import CROSSDIRECT_PKGS, QEMU_BINFMT_PKGS, GCC_HOSTSPECS, ARCHES, Arch, CHROOT_PATHS, MAKEPKG_CMD
 from config.state import config
 from exec.cmd import run_cmd, run_root_cmd
@@ -800,7 +800,7 @@ def build_enable_qemu_binfmt(arch: Arch, repo: Optional[dict[str, Pkgbuild]] = N
     if arch not in ARCHES:
         raise Exception(f'Unknown architecture "{arch}". Choices: {", ".join(ARCHES)}')
     logging.info('Installing qemu-user (building if necessary)')
-    if lazy and _qemu_enabled[arch] and binfmt_is_registered(arch):
+    if lazy and _qemu_enabled[arch]:
         _qemu_enabled[arch] = True
         return
     native = config.runtime.arch
