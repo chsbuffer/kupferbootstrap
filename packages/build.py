@@ -578,7 +578,7 @@ def build_package(
     setup_git_insecure_paths(build_root)
     makepkg_conf_absolute = os.path.join('/', makepkg_conf_path)
 
-    build_cmd = MAKEPKG_CMD + ['--config', makepkg_conf_absolute, '--skippgpcheck'] + makepkg_compile_opts
+    build_cmd = ['source', '/etc/profile', '&&', *MAKEPKG_CMD, '--config', makepkg_conf_absolute, '--skippgpcheck', *makepkg_compile_opts]
     logging.debug(f'Building: Running {build_cmd}')
     result = build_root.run_cmd(
         build_cmd,
