@@ -21,7 +21,7 @@ def kupferbootstrap_su(cmd: list[str], uid: int = 1000, username: str = 'kupfer'
     user = pwd.getpwnam(username)
     home = user.pw_dir
     if uid != user.pw_uid:
-        run_cmd(['usermod', '-u', str(uid), username]).check_returncode()  # type: ignore[union-attr]
+        run_cmd(['usermod', '-o', '-u', str(uid), username]).check_returncode()  # type: ignore[union-attr]
         chown(home, username, recursive=False)
     logging.debug(f'wrapper_su_helper: running {cmd} as {repr(username)}')
     env_inject = ['env', f'{WRAPPER_ENV_VAR}={os.environ[WRAPPER_ENV_VAR]}'] if WRAPPER_ENV_VAR in os.environ else []
