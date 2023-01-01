@@ -8,7 +8,7 @@ from traceback import format_exc, format_exception_only, format_tb
 from typing import Optional
 
 from logger import color_option, logging, quiet_option, setup_logging, verbose_option
-from wrapper import nowrapper_option, enforce_wrap
+from wrapper import get_wrapper_type, enforce_wrap, nowrapper_option
 from progressbar import progress_bars_option
 
 from config.cli import config, config_option, cmd_config
@@ -49,6 +49,7 @@ def cli(
     if config.file_state.exception:
         logging.warning(f"Config file couldn't be loaded: {config.file_state.exception}")
     if wrapper_override:
+        logging.info(f'Force-wrapping in wrapper-type: "{get_wrapper_type()}"!')
         enforce_wrap()
 
 
