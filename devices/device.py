@@ -22,6 +22,25 @@ DEVICE_DEPRECATIONS = {
 }
 
 
+class DeviceSummary(DataClass):
+    name: str
+    description: str
+    arch: str
+    package_name: Optional[str]
+    package_path: Optional[str]
+
+    def nice_str(self, newlines: bool = False):
+        separator = '\n' if newlines else ', '
+        return separator.join([
+            f'Device: {self.name}',
+            'Description: ' +
+            (self.description or f"[no package {'description' if self.package_name else 'associated (?!)'} and deviceinfo not parsed]"),
+            f'Architecture: {self.arch}',
+            'Package Name: ' +
+            (f"{self.package_name}{separator}Package Path: {self.package_path}" if self.package_name else "no package associated. PROBABLY A BUG!"),
+        ])
+
+
 @munchclass()
 class Device(DataClass):
     name: str
@@ -33,21 +52,21 @@ class Device(DataClass):
         return f'Device<{self.name},{self.arch},{self.package.path if self.package else "[no package]"}>'
 
     def __str__(self):
-        return self.get_summary_str(newlines=True)
+        return self.nice_str(newlines=True)
 
-    def get_summary_str(self, newlines: bool = False):
-        separator = '\n' if newlines else ', '
-        description = (
-            (self.package.description if self.package else "").strip() or
-            (self.deviceinfo.get("name", "[No name in deviceinfo]") if self.deviceinfo else "")
-        ).strip()
-        description = description or f"[no package {'description' if self.package else 'associated (?!)'} and deviceinfo not parsed]"
-        return separator.join([
-            f'Device: {self.name}',
-            f'Description: {description}',
-            f'Architecture: {self.arch}',
-            'Package Name: ' + (f"{self.package.name}{separator}Package Path: {self.package.path}" if self.package else "??? PROBABLY A BUG!"),
-        ])
+    def nice_str(self, *args, **kwargs) -> str:
+        return self.get_summary().nice_str(*args, **kwargs)
+
+    def get_summary(self) -> DeviceSummary:
+        result: dict[str, Optional[str]] = {}
+        description = ((self.package.description if self.package else "").strip() or
+                       (self.deviceinfo.get("name", "[No name in deviceinfo]") if self.deviceinfo else "")).strip()
+        result["name"] = self.name
+        result["description"] = description
+        result["arch"] = self.arch
+        result["package_name"] = self.package.name if self.package else None
+        result["package_path"] = self.package.path if self.package else None
+        return DeviceSummary(result)
 
     def parse_deviceinfo(self, try_download: bool = True, lazy: bool = True):
         if not lazy or 'deviceinfo' not in self or self.deviceinfo is None:
