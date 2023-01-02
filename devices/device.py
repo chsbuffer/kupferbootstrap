@@ -30,8 +30,24 @@ class Device(DataClass):
     deviceinfo: Optional[DeviceInfo]
 
     def __repr__(self):
-        return (f'Device "{self.name}": "{self.package.description if self.package else ""}", '
-                f'Architecture: {self.arch}, package: {self.package.name if self.package else "??? PROBABLY A BUG!"}')
+        return f'Device<{self.name},{self.arch},{self.package.path if self.package else "[no package]"}>'
+
+    def __str__(self):
+        return self.get_summary_str(newlines=True)
+
+    def get_summary_str(self, newlines: bool = False):
+        separator = '\n' if newlines else ', '
+        description = (
+            (self.package.description if self.package else "").strip() or
+            (self.deviceinfo.get("name", "[No name in deviceinfo]") if self.deviceinfo else "")
+        ).strip()
+        description = description or f"[no package {'description' if self.package else 'associated (?!)'} and deviceinfo not parsed]"
+        return separator.join([
+            f'Device: {self.name}',
+            f'Description: {description}',
+            f'Architecture: {self.arch}',
+            'Package Name: ' + (f"{self.package.name}{separator}Package Path: {self.package.path}" if self.package else "??? PROBABLY A BUG!"),
+        ])
 
     def parse_deviceinfo(self, try_download: bool = True, lazy: bool = True):
         if not lazy or 'deviceinfo' not in self or self.deviceinfo is None:

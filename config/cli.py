@@ -135,7 +135,7 @@ def prompt_profile_device(current: Optional[str], profile_name: str) -> tuple[st
     devices = get_devices()
     print(click.style("Pick your device!\nThese are the available devices:", bold=True))
     for dev in sorted(devices.keys()):
-        print(devices[dev])
+        print(f"{devices[dev]}\n")
     return prompt_choice(current, f'profiles.{profile_name}.device', devices.keys())
 
 
