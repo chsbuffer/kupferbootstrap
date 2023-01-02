@@ -78,12 +78,18 @@ push_docker:
   before_script: &docs_before_script
     - pip install -r requirements.txt -r docs/requirements.txt
   script: &docs_script
-    - '(cd docs && make -j$DOCS_MAKE_THREADS SPHINXARGS="$DOCS_SPHINXARGS" $DOCS_MAKE_TARGET)'
-  after_script:
+    - make -C docs -j$DOCS_MAKE_THREADS SPHINXARGS="$DOCS_SPHINXARGS" $DOCS_MAKE_TARGET
     - mv "docs/$DOCS_MAKE_TARGET" public
+    - if [[ -e docs/archived ]]; then cp -r docs/archived public/ ; fi
+    - rm -vf docs/archived/{main,dev,"$CI_COMMIT_REF_NAME"}.tar.gz  # we want to cache only old tags as they won't change
+  after_script:
   artifacts:
     paths:
       - public
+  cache:
+    key: docs
+    paths:
+      - docs/archived/*.tar.gz
 
 build_docs:
   stage: build

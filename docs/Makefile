@@ -1,10 +1,8 @@
 buildargs := -b dirhtml -aE source
 
-.PHONY: cleanbuild clean serve serve_versions versions versions_git versions_index .phony_explicit
+.PHONY: cleanbuild clean serve serve_versions versions versions_git versions_index
 .NOTINTERMEDIATE:
-.PRECIOUS: versions/%/index.html checkouts/%/docs/html/index.html
-# helper to make versions/%/index.html phony
-.phony_explicit:
+.PRECIOUS: versions/index.html versions/%/index.html checkouts/%/docs/html/index.html archived/%.tar.gz
 
 BRANCHES := main dev
 TAGS := $(shell git tag)
@@ -43,14 +41,16 @@ checkouts/%/docs/html/index.html:
 	(! [[ -e "$$checkout/docs/source/conf.py" ]] || echo "version = '$$ver'" >> "$$checkout/docs/source/conf.py") && \
 	$(MAKE) -C "$$checkout/docs" SPHINXARGS="-D version=$$ver"
 
-versions/%/index.html: checkouts/%/docs/html/index.html .phony_explicit
-	@mkdir -p versions
-	@# use backslashed multi-line cmd because otherwise variables will be lost
-	@branch="$$(basename "$(@D)")" && \
-	checkout="checkouts/$$branch" && \
-	echo "working on version '$$branch'" && \
-	set -x && \
-	cp -rf "$$checkout/docs/html/." "versions/$$branch/"
+archived/%.tar.gz: checkouts/%/docs/html/index.html
+	mkdir -p archived
+	tar -C "checkouts/$*/docs/html" -czf "$@" .
+
+versions/%/index.html: archived/%.tar.gz
+	@mkdir -p "$(@D)"
+	@echo "working on version '$*'"
+	tar -xf "archived/$*.tar.gz" -C "$(@D)"
+	@# ensure index file exists and update its timestamp for Make's dependency detection
+	[[ -e "$(@)" ]] && touch "$(@)"
 
 versions/versions.css: versjon/versions.css
 	@mkdir -p versions
@@ -59,12 +59,14 @@ versions/versions.css: versjon/versions.css
 versions_git:
 	@$(MAKE) $(patsubst %, versions/%/index.html, $(VERSIONS))
 
-versions/index.html:
+versions/index.html: $(sort $(wildcard versions/*/index.html))
 	rm -rf versions/stable
 	@cd versions && set -x && versjon --stable-version main --user_templates ../versjon
+	@# ensure the global index.html exists and is newer than each version's index.html
+	[[ -e "$(@)" ]] && touch "$(@)"
 
 versions: versions_git versions/versions.css
 	@$(MAKE) versions/index.html
 
-serve_versions: versions
+serve_versions: versions/index.html
 	cd versions && python -m http.server 9888
