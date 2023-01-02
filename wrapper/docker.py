@@ -38,7 +38,12 @@ class DockerWrapper(Wrapper):
                 tag,
             ] + (['-q'] if not config.runtime.verbose else [])
             logging.debug('Running docker cmd: ' + ' '.join(cmd))
-            result = subprocess.run(cmd, cwd=script_path, capture_output=True)
+            result = subprocess.run(
+                cmd,
+                cwd=script_path,
+                stdout=(sys.stdout if config.runtime.verbose else subprocess.PIPE),
+                stderr=(sys.stderr if config.runtime.verbose else subprocess.PIPE),
+            )
             if result.returncode != 0:
                 logging.fatal('Failed to build docker image:\n' + result.stderr.decode())
                 exit(1)
