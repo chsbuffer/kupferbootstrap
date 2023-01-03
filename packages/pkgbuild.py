@@ -332,7 +332,7 @@ def parse_pkgbuild(
     global config
     if _config:
         config = _config
-        setup_logging(verbose=config.runtime.verbose, log_setup=False)  # different subprocess needs log setup.
+        setup_logging(verbose=config.runtime.verbose, force_colors=config.runtime.colors, log_setup=False)  # different subprocess needs log setup.
     logging.info(f"Discovering PKGBUILD for {relative_pkg_dir}")
 
     if force_refresh_srcinfo:

@@ -62,6 +62,7 @@ CONFIG_RUNTIME_DEFAULTS: RuntimeConfiguration = RuntimeConfiguration.fromDict({
     'arch': None,
     'uid': None,
     'progress_bars': None,
+    'colors': None,
 })
 
 

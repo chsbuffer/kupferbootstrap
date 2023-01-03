@@ -148,6 +148,7 @@ class RuntimeConfiguration(DataClass):
     arch: Optional[Arch]
     uid: Optional[int]
     progress_bars: Optional[bool]
+    colors: Optional[bool]
 
 
 class ConfigLoadState(DataClass):
