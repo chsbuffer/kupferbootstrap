@@ -19,6 +19,8 @@ def setup_logging(verbose: bool, force_colors: Optional[bool] = None, log_setup:
         field_styles=field_colors,
         isatty=force_colors,
     )
+    # don't raise Exceptions when e.g. output stream is closed
+    logging.raiseExceptions = False
     if log_setup:
         logging.debug('Logger: Logging set up.')
         if force_colors is not None:
