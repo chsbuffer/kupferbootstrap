@@ -1,4 +1,5 @@
 import atexit
+import click
 import datetime
 import grp
 import hashlib
@@ -182,3 +183,15 @@ def ellipsize(s: str, length: int = 25, padding: Optional[str] = None, ellipsis:
         return s
     pad = s.rjust if rjust else s.ljust
     return pad(length, padding)
+
+
+def colors_supported(force_colors: Optional[bool] = None) -> bool:
+    "If force_colors is None, returns isatty(stdout)"
+    # stdout is fd 1
+    return force_colors if force_colors is not None else os.isatty(1)
+
+
+def color_str(s: str, use_colors: Optional[bool] = None, **kwargs) -> str:
+    if colors_supported(use_colors):
+        return click.style(s, **kwargs)
+    return s
