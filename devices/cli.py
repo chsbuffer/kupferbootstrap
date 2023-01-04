@@ -3,12 +3,13 @@ from json import dumps as json_dump
 import logging
 
 from config.state import config
+from utils import colors_supported, color_str
 
 from .device import get_devices, get_profile_device
 
 
 @click.command(name='devices')
-@click.option('--json', is_flag=True, help='output machine-parsable JSON format')
+@click.option('-j', '--json', is_flag=True, help='output machine-parsable JSON format')
 def cmd_devices(json: bool = False):
     'list the available devices and descriptions'
     devices = get_devices()
@@ -23,6 +24,7 @@ def cmd_devices(json: bool = False):
         logging.debug(f"Failed to get profile device for visual highlighting, not a problem: {ex}")
     output = ['']
     json_output = {}
+    use_colors = colors_supported(False if json else config.runtime.colors)
     for name in sorted(devices.keys()):
         prefix = ''
         suffix = ''
@@ -36,9 +38,11 @@ def cmd_devices(json: bool = False):
             json_output[name] = device.get_summary().toDict()
             continue
         if profile_device and profile_device.name == device.name:
-            prefix = '>>> '
-            suffix = f'\n\nCurrently selected by profile "{config.file.profiles.current}"'
-        snippet = f'{device}{suffix}'
+            prefix = color_str('>>> ', bold=True, fg="bright_green", use_colors=use_colors)
+            suffix = '\n\n'
+            suffix += color_str('Currently selected by profile', bold=True, use_colors=use_colors) + " "
+            suffix += color_str(f'"{config.file.profiles.current}"', bold=True, fg="bright_green", use_colors=use_colors)
+        snippet = f'{device.nice_str(colors=use_colors, newlines=True)}{suffix}'
         # prefix each line in the snippet
         snippet = '\n'.join([f'{prefix}{line}' for line in snippet.split('\n')])
         output.append(f"{snippet}\n")

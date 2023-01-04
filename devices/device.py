@@ -9,7 +9,7 @@ from config.scheme import DataClass, munchclass
 from distro.distro import get_kupfer_local
 from distro.package import LocalPackage
 from packages.pkgbuild import Pkgbuild, _pkgbuilds_cache, discover_pkgbuilds, get_pkgbuild_by_path, init_pkgbuilds
-from utils import read_files_from_tar
+from utils import read_files_from_tar, color_str
 
 from .deviceinfo import DeviceInfo, parse_deviceinfo
 
@@ -29,16 +29,18 @@ class DeviceSummary(DataClass):
     package_name: Optional[str]
     package_path: Optional[str]
 
-    def nice_str(self, newlines: bool = False):
+    def nice_str(self, newlines: bool = False, colors: bool = False) -> str:
         separator = '\n' if newlines else ', '
-        return separator.join([
-            f'Device: {self.name}',
-            'Description: ' +
-            (self.description or f"[no package {'description' if self.package_name else 'associated (?!)'} and deviceinfo not parsed]"),
-            f'Architecture: {self.arch}',
-            'Package Name: ' +
-            (f"{self.package_name}{separator}Package Path: {self.package_path}" if self.package_name else "no package associated. PROBABLY A BUG!"),
-        ])
+        assert bool(self.package_path) == bool(self.package_name)
+        package_path = {"Package Path": self.package_path} if self.package_path else {}
+        fields = {
+            "Device": self.name,
+            "Description": self.description or f"[no package {'description' if self.package_name else 'associated (?!)'} and deviceinfo not parsed]",
+            "Architecture": self.arch,
+            "Package Name": self.package_name or "no package associated. PROBABLY A BUG!",
+            **package_path,
+        }
+        return separator.join([f"{color_str(name, bold=True, use_colors=colors)}: {value}" for name, value in fields.items()])
 
 
 @munchclass()
