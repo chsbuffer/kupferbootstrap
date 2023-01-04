@@ -3,6 +3,7 @@
 import click
 import subprocess
 
+from os import isatty
 from traceback import format_exc, format_exception_only, format_tb
 from typing import Optional
 
@@ -36,7 +37,8 @@ def cli(
     force_progress_bars: Optional[bool] = None,
 ):
     setup_logging(verbose, force_colors=force_colors)
-    config.runtime.colors = force_colors
+    # stdout is fd 1
+    config.runtime.colors = isatty(1) if force_colors is None else force_colors
     config.runtime.verbose = verbose
     config.runtime.progress_bars = force_progress_bars
     config.runtime.no_wrap = wrapper_override is False
