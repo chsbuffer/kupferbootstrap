@@ -4,16 +4,16 @@ import json
 import logging
 import os
 
-from dataclasses import dataclass
 from typing import Optional
 
 from config.state import config
 from constants import FLAVOUR_DESCRIPTION_PREFIX, FLAVOUR_INFO_FILE
+from dataclass import DataClass
 from packages.pkgbuild import discover_pkgbuilds, get_pkgbuild_by_name, init_pkgbuilds, Pkgbuild
+from utils import color_str
 
 
-@dataclass
-class FlavourInfo:
+class FlavourInfo(DataClass):
     rootfs_size: int  # rootfs size in GB
     description: Optional[str]
 
@@ -21,8 +21,7 @@ class FlavourInfo:
         return f'rootfs_size: {self.rootfs_size}'
 
 
-@dataclass
-class Flavour:
+class Flavour(DataClass):
     name: str
     pkgbuild: Pkgbuild
     description: str
@@ -43,7 +42,27 @@ class Flavour:
         return Flavour(name=name, pkgbuild=pkgbuild, description=description.strip(), flavour_info=None)
 
     def __repr__(self):
-        return f'Flavour "{self.name}": "{self.description}", package: {self.pkgbuild.name if self.pkgbuild else "??? PROBABLY A BUG!"}{f", {self.flavour_info}" if self.flavour_info else ""}'
+        return f'Flavour<"{self.name}": "{self.description}", package: {self.pkgbuild.name if self.pkgbuild else "??? PROBABLY A BUG!"}{f", {self.flavour_info}" if self.flavour_info else ""}>'
+
+    def __str__(self):
+        return self.nice_str()
+
+    def nice_str(self, newlines: bool = False, colors: bool = False) -> str:
+        separator = '\n' if newlines else ', '
+
+        def get_lines(k, v, key_prefix=''):
+            results = []
+            full_k = f'{key_prefix}.{k}' if key_prefix else k
+            if not isinstance(v, (dict, DataClass)):
+                results = [f'{color_str(full_k, bold=True)}: {v}']
+            else:
+                for _k, _v in v.items():
+                    if _k.startswith('_'):
+                        continue
+                    results += get_lines(_k, _v, key_prefix=full_k)
+            return results
+
+        return separator.join(get_lines(None, self))
 
     def parse_flavourinfo(self, lazy: bool = True):
         if lazy and self.flavour_info is not None:
