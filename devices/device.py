@@ -183,7 +183,7 @@ def get_device(name: str, pkgbuilds: Optional[dict[str, Pkgbuild]] = None, lazy:
                 if not os.path.exists(os.path.join(config.get_path('pkgbuilds'), relative_path)):
                     logging.debug(f'Exact device pkgbuild path "pkgbuilds/{relative_path}" doesn\'t exist, scanning entire repo')
                     return get_device(name, pkgbuilds=pkgbuilds, lazy=lazy, scan_all=True)
-                pkgbuild = [p for p in get_pkgbuild_by_path(relative_path, lazy=lazy, _config=config) if p.name == pkgname][0]
+                pkgbuild = [p for p in get_pkgbuild_by_path(relative_path, lazy=lazy) if p.name == pkgname][0]
         device = parse_device_pkg(pkgbuild)
         if lazy:
             _device_cache[name] = device
