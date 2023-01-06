@@ -3,12 +3,11 @@ import os
 import sys
 
 from glob import glob
-from shutil import rmtree
 from typing import ClassVar
 
 from kupferbootstrap.constants import Arch
 from kupferbootstrap.exec.cmd import run_root_cmd
-from kupferbootstrap.exec.file import makedir, root_makedir
+from kupferbootstrap.exec.file import makedir, remove_file, root_makedir
 from kupferbootstrap.config.state import config
 
 from .abstract import Chroot, get_chroot
@@ -19,10 +18,10 @@ class BaseChroot(Chroot):
     _copy_base: ClassVar[bool] = False
 
     def create_rootfs(self, reset, pacman_conf_target, active_previously):
-        if reset:
+        if reset and os.path.exists(self.path):
             logging.info(f"Resetting {self.name}")
             for dir in glob(os.path.join(self.path, "*")):
-                rmtree(dir)
+                remove_file(dir, recursive=True)
         makedir(config.get_path("chroots"))
         root_makedir(self.get_path())
 

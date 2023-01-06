@@ -61,7 +61,7 @@ class DeviceChroot(BuildChroot):
                 raise Exception(
                     f"{self.name}: Chroot has submounts active: {really_active}"
                 )
-            if os.path.ismount(self.path):
+            if os.path.ismount(self.path) or check_findmnt(self.path):
                 raise Exception(
                     f"{self.name}: There is already something mounted at {self.path}, not mounting over it."
                 )
