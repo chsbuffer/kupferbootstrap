@@ -37,7 +37,7 @@ CONFIG_DEFAULTS_DICT = {
     },
     "pacman": {
         "parallel_downloads": 4,
-        "check_space": False,  # TODO: investigate why True causes issues
+        "check_space": True,
         "repo_branch": DEFAULT_PACKAGE_BRANCH,
     },
     "paths": {
