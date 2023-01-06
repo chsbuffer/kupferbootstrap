@@ -6,10 +6,10 @@ import sys
 from typing import Optional
 
 
-def setup_logging(verbose: bool, force_colors: Optional[bool] = None, log_setup: bool = True):
+def setup_logging(verbose: bool, quiet: bool = False, force_colors: Optional[bool] = None, log_setup: bool = True):
     level_colors = coloredlogs.DEFAULT_LEVEL_STYLES | {'info': {'color': 'magenta', 'bright': True}, 'debug': {'color': 'blue', 'bright': True}}
     field_colors = coloredlogs.DEFAULT_FIELD_STYLES | {'asctime': {'color': 'white', 'faint': True}}
-    level = logging.DEBUG if verbose else logging.INFO
+    level = logging.DEBUG if verbose and not quiet else (logging.INFO if not quiet else logging.ERROR)
     coloredlogs.install(
         stream=sys.stdout,
         fmt='%(asctime)s %(levelname)s: %(message)s',
@@ -32,6 +32,13 @@ verbose_option = click.option(
     '--verbose',
     is_flag=True,
     help='Enables verbose logging',
+)
+
+quiet_option = click.option(
+    '-q',
+    '--quiet',
+    is_flag=True,
+    help='Disable most logging, only log errors. (Currently only affects KBS logging, not called subprograms)',
 )
 
 color_option = click.option(

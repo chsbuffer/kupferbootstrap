@@ -7,7 +7,7 @@ from os import isatty
 from traceback import format_exc, format_exception_only, format_tb
 from typing import Optional
 
-from logger import color_option, logging, setup_logging, verbose_option
+from logger import color_option, logging, quiet_option, setup_logging, verbose_option
 from wrapper import nowrapper_option, enforce_wrap
 from progressbar import progress_bars_option
 
@@ -24,19 +24,21 @@ from image.cli import cmd_image
 @click.group()
 @click.option('--error-shell', '-E', 'error_shell', is_flag=True, default=False, help='Spawn shell after error occurs')
 @verbose_option
+@quiet_option
 @config_option
 @nowrapper_option
 @color_option
 @progress_bars_option
 def cli(
     verbose: bool = False,
+    quiet: bool = False,
     config_file: Optional[str] = None,
     wrapper_override: Optional[bool] = None,
     error_shell: bool = False,
     force_colors: Optional[bool] = None,
     force_progress_bars: Optional[bool] = None,
 ):
-    setup_logging(verbose, force_colors=force_colors)
+    setup_logging(verbose, quiet=quiet, force_colors=force_colors)
     # stdout is fd 1
     config.runtime.colors = isatty(1) if force_colors is None else force_colors
     config.runtime.verbose = verbose
