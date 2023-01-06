@@ -1,6 +1,8 @@
 import logging
 import subprocess
 
+from typing import Optional
+
 
 def fastboot_erase_dtbo():
     logging.info("Fastboot: Erasing DTBO")
@@ -14,10 +16,11 @@ def fastboot_erase_dtbo():
     )
 
 
-def fastboot_flash(partition, file):
+def fastboot_flash(partition: str, file: str, sparse_size: Optional[str] = None):
     logging.info(f"Fastboot: Flashing {file} to {partition}")
     result = subprocess.run([
         'fastboot',
+        *(['-S', sparse_size] if sparse_size is not None else []),
         'flash',
         partition,
         file,
