@@ -173,12 +173,22 @@ def root_write_file(*args, **kwargs):
     return write_file(*args, **kwargs)
 
 
-def remove_file(path: str, recursive=False):
+def remove_file(
+    path: str,
+    *,
+    recursive: bool = False,
+    one_file_system: bool = True,
+):
     try:
         rm = rmtree if recursive else os.unlink
         rm(path)  # type: ignore
     except Exception:
-        cmd = ["rm"] + (["-r"] if recursive else []) + [path]
+        cmd = ["rm"]
+        if recursive:
+            cmd.append("--recursive")
+            if one_file_system:
+                cmd.append("--one-file-system")
+        cmd.append(path)
         rc = run_root_cmd(cmd).returncode
         if rc:
             raise Exception(f"Unable to remove {path}: cmd returned {rc}")
