@@ -4,7 +4,7 @@ import click
 
 from typing import Optional
 
-from constants import FLASH_PARTS, LOCATIONS
+from constants import FLASH_PARTS, LOCATIONS, FASTBOOT, JUMPDRIVE
 from exec.cmd import run_root_cmd
 from exec.file import get_temp_dir
 from devices.device import get_profile_device
@@ -13,28 +13,76 @@ from flavours.cli import profile_option
 from wrapper import enforce_wrap
 
 from .fastboot import fastboot_flash
-from .image import dd_image, partprobe, shrink_fs, losetup_rootfs_image, losetup_destroy, dump_aboot, dump_lk2nd, dump_qhypstub, get_image_name, get_image_path
+from .image import dd_image, dump_aboot, dump_lk2nd, dump_qhypstub, get_image_path, losetup_destroy, losetup_rootfs_image, partprobe, shrink_fs
 
 ABOOT = FLASH_PARTS['ABOOT']
 LK2ND = FLASH_PARTS['LK2ND']
 QHYPSTUB = FLASH_PARTS['QHYPSTUB']
 ROOTFS = FLASH_PARTS['ROOTFS']
 
+DD = 'dd'
+
+FLASH_METHODS = [FASTBOOT, JUMPDRIVE, DD]
+
+
+def find_jumpdrive(location: str) -> str:
+    if location not in LOCATIONS:
+        raise Exception(f'Invalid location {location}. Choose one of {", ".join(LOCATIONS)}')
+    dir = '/dev/disk/by-id'
+    for file in os.listdir(dir):
+        sanitized_file = file.replace('-', '').replace('_', '').lower()
+        if f'jumpdrive{location.split("-")[0]}' in sanitized_file:
+            return os.path.realpath(os.path.join(dir, file))
+    raise Exception('Unable to discover Jumpdrive')
+
+
+def test_blockdev(path: str):
+    partprobe(path)
+    result = run_root_cmd(['lsblk', path, '-o', 'SIZE'], capture_output=True)
+    if result.returncode != 0:
+        raise Exception(f'Failed to lsblk {path}')
+    if result.stdout == b'SIZE\n  0B\n':
+        raise Exception(f'Disk {path} has a size of 0B. That probably means it is not available (e.g. no'
+                        'microSD inserted or no microSD card slot installed in the device) or corrupt or defect')
+
+
+def prepare_minimal_image(source_path: str, sector_size: int) -> str:
+    minimal_image_dir = get_temp_dir(register_cleanup=True)
+    minimal_image_path = os.path.join(minimal_image_dir, f'minimal-{os.path.basename(source_path)}')
+
+    shutil.copyfile(source_path, minimal_image_path)
+
+    loop_device = losetup_rootfs_image(minimal_image_path, sector_size)
+    partprobe(loop_device)
+    shrink_fs(loop_device, minimal_image_path, sector_size)
+    losetup_destroy(loop_device)
+    return minimal_image_path
+
 
 @click.command(name='flash')
 @profile_option
+@click.option('-m', '--method', type=click.Choice(FLASH_METHODS))
+@click.option('--split-size', help='Chunk size when splitting the image into sparse files via fastboot')
+@click.option('--shrink/--no-shrink', is_flag=True, default=True, help="Don't copy and shrink the image file to minimal size")
 @click.argument('what', type=click.Choice(list(FLASH_PARTS.values())))
 @click.argument('location', type=str, required=False)
-def cmd_flash(what: str, location: str, profile: Optional[str] = None):
+def cmd_flash(
+    what: str,
+    location: str,
+    method: Optional[str] = None,
+    split_size: Optional[str] = None,
+    profile: Optional[str] = None,
+    shrink: bool = True,
+):
     """Flash a partition onto a device. `location` takes either a path to a block device or one of emmc, sdcard"""
     enforce_wrap()
     device = get_profile_device(profile)
     flavour = get_profile_flavour(profile).name
-    device_image_name = get_image_name(device, flavour)
     device_image_path = get_image_path(device, flavour)
 
     deviceinfo = device.parse_deviceinfo()
     sector_size = deviceinfo.flash_pagesize
+    method = method or deviceinfo.flash_method
     if not sector_size:
         raise Exception(f"Device {device.name} has no flash_pagesize specified")
 
@@ -42,46 +90,32 @@ def cmd_flash(what: str, location: str, profile: Optional[str] = None):
         raise Exception(f'Unknown what "{what}", must be one of {", ".join(FLASH_PARTS.values())}')
 
     if what == ROOTFS:
-        if location is None:
-            raise Exception(f'You need to specify a location to flash {what} to')
-
         path = ''
-        if location.startswith("/dev/"):
-            path = location
+        if method not in FLASH_METHODS:
+            raise Exception(f"Flash method {method} not supported!")
+        if not location:
+            raise Exception(f'You need to specify a location to flash {what} to')
+        path = ''
+        image_path = prepare_minimal_image(device_image_path, sector_size) if shrink else device_image_path
+        if method == FASTBOOT:
+            fastboot_flash(
+                partition=location,
+                file=image_path,
+                sparse_size='100M',  # TODO: make configurable
+            )
+        elif method in [JUMPDRIVE, DD]:
+            if method == DD or location.startswith("/") or (location not in LOCATIONS and os.path.exists(location)):
+                path = location
+            elif method == JUMPDRIVE:
+                path = find_jumpdrive(location)
+            test_blockdev(path)
+            if dd_image(input=image_path, output=path).returncode != 0:
+                raise Exception(f'Failed to flash {image_path} to {path}')
         else:
-            if location not in LOCATIONS:
-                raise Exception(f'Invalid location {location}. Choose one of {", ".join(LOCATIONS)}')
-
-            dir = '/dev/disk/by-id'
-            for file in os.listdir(dir):
-                sanitized_file = file.replace('-', '').replace('_', '').lower()
-                if f'jumpdrive{location.split("-")[0]}' in sanitized_file:
-                    path = os.path.realpath(os.path.join(dir, file))
-                    partprobe(path)
-                    result = run_root_cmd(['lsblk', path, '-o', 'SIZE'], capture_output=True)
-                    if result.returncode != 0:
-                        raise Exception(f'Failed to lsblk {path}')
-                    if result.stdout == b'SIZE\n  0B\n':
-                        raise Exception(f'Disk {path} has a size of 0B. That probably means it is not available (e.g. no'
-                                        'microSD inserted or no microSD card slot installed in the device) or corrupt or defect')
-            if path == '':
-                raise Exception('Unable to discover Jumpdrive')
-
-        minimal_image_dir = get_temp_dir(register_cleanup=True)
-        minimal_image_path = os.path.join(minimal_image_dir, f'minimal-{device_image_name}')
-
-        shutil.copyfile(device_image_path, minimal_image_path)
-
-        loop_device = losetup_rootfs_image(minimal_image_path, sector_size)
-        partprobe(loop_device)
-        shrink_fs(loop_device, minimal_image_path, sector_size)
-        losetup_destroy(loop_device)
-
-        result = dd_image(input=minimal_image_path, output=path)
-
-        if result.returncode != 0:
-            raise Exception(f'Failed to flash {minimal_image_path} to {path}')
+            raise Exception(f'Unhandled flash method "{method}" for "{what}"')
     else:
+        if method and method != FASTBOOT:
+            raise Exception(f'Flashing "{what}" with method "{method}" not supported, try no parameter or "{FASTBOOT}"')
         loop_device = losetup_rootfs_image(device_image_path, sector_size)
         if what == ABOOT:
             path = dump_aboot(f'{loop_device}p1')
