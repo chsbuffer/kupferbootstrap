@@ -171,7 +171,13 @@ class Chroot(AbstractChroot):
 
         active_previously = self.active
         self.deactivate(fail_if_inactive=False, ignore_rootfs=True)
-
+        if not (os.path.ismount(self.path) or check_findmnt(self.path)):
+            makedir(os.path.dirname(self.path))
+            root_makedir(self.path)
+            logging.debug(
+                f"Bind-mounting {self.name} ({self.uuid}) over itself"
+            )  # needed for pacman space calculation
+            self.mount(self.path, "/", options=["rbind"])
         self.create_rootfs(reset, pacman_conf_target, active_previously)
 
     def get_path(self, *joins: str) -> str:
