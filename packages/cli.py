@@ -224,15 +224,17 @@ def cmd_sideload(paths: Iterable[str], arch: Optional[Arch] = None, no_build: bo
         logging.fatal("No packages matched")
         return
     scp_put_files(files, '/tmp').check_returncode()
-    run_ssh_command([
-        'sudo',
-        'pacman',
-        '-U',
-    ] + [os.path.join('/tmp', os.path.basename(file)) for file in files] + [
-        '--noconfirm',
-        "'--overwrite=\\*'",
-    ],
-                    alloc_tty=True).check_returncode()
+    run_ssh_command(
+        [
+            'sudo',
+            'pacman',
+            '-U',
+            *[os.path.join('/tmp', os.path.basename(file)) for file in files],
+            '--noconfirm',
+            "'--overwrite=\\*'",
+        ],
+        alloc_tty=True,
+    ).check_returncode()
 
 
 CLEAN_LOCATIONS = ['src', 'pkg', *SRCINFO_CACHE_FILES]
@@ -439,7 +441,7 @@ def cmd_check(paths):
                 formatted = False
                 reason = 'Found literal " although no special character was found in the line to justify the usage of a literal "'
 
-            if "'" in line and not '"' in line:
+            if "'" in line and '"' not in line:
                 formatted = False
                 reason = 'Found literal \' although either a literal " or no qoutes should be used'
 

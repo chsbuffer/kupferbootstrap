@@ -64,7 +64,7 @@ def shrink_fs(loop_device: str, file: str, sector_size: int):
 
     logging.debug(f'Finding end block of shrunken filesystem on {loop_device}p2')
     blocks = int(re.search('is now [0-9]+', result.stdout.decode('utf-8')).group(0).split(' ')[2])  # type: ignore
-    sectors = blocks * sectors_blocks_factor  #+ 157812 - 25600
+    sectors = blocks * sectors_blocks_factor
 
     logging.debug(f'Shrinking partition at {loop_device}p2 to {sectors} sectors')
     child_proccess = subprocess.Popen(
