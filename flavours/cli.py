@@ -43,8 +43,15 @@ def cmd_flavours(json: bool = False):
                 block = [prefix + line for line in block]
             results += block
         else:
-            f.pkgbuild = f.pkgbuild.name if f.pkgbuild else None
             d = dict(f)
+            d["description"] = f.flavour_info.description if (f.flavour_info and f.flavour_info.description) else f.description
+            if "flavour_info" in d and d["flavour_info"]:
+                for k in set(d["flavour_info"].keys()) - set(['description']):
+                    d[k] = d["flavour_info"][k]
+            del d["flavour_info"]
+            d["pkgbuild"] = f.pkgbuild.path if f.pkgbuild else None
+            d["package"] = f.pkgbuild.name
+            d["arches"] = sorted(f.pkgbuild.arches) if f.pkgbuild else None
             results += [d]
     print()
     if json:
