@@ -1,6 +1,8 @@
 import click
-from json import dumps as json_dump
 import logging
+
+from json import dumps as json_dump
+from typing import Optional
 
 from config.state import config
 from utils import colors_supported, color_str
@@ -10,7 +12,19 @@ from .device import get_devices, get_profile_device
 
 @click.command(name='devices')
 @click.option('-j', '--json', is_flag=True, help='output machine-parsable JSON format')
-def cmd_devices(json: bool = False):
+@click.option(
+    '--force-parse-deviceinfo/--no-parse-deviceinfo',
+    is_flag=True,
+    default=None,
+    help="Force or disable deviceinfo parsing. The default is to try but continue if it fails.",
+)
+@click.option(
+    '--download-packages/--no-download-packages',
+    is_flag=True,
+    default=False,
+    help='Download packages while trying to parse deviceinfo',
+)
+def cmd_devices(json: bool = False, force_parse_deviceinfo: Optional[bool] = True, download_packages: bool = False):
     'list the available devices and descriptions'
     devices = get_devices()
     if not devices:
@@ -30,10 +44,15 @@ def cmd_devices(json: bool = False):
         suffix = ''
         device = devices[name]
         assert device
-        try:
-            device.parse_deviceinfo(try_download=False)
-        except Exception as ex:
-            logging.debug(f"Failed to parse deviceinfo for extended description, not a problem: {ex}")
+        if force_parse_deviceinfo in [None, True]:
+            try:
+                device.parse_deviceinfo(try_download=download_packages)
+            except Exception as ex:
+                if not force_parse_deviceinfo:
+                    logging.debug(f"Failed to parse deviceinfo for extended description, not a problem: {ex}")
+                else:
+                    raise ex
+
         if json:
             json_output[name] = device.get_summary().toDict()
             continue
