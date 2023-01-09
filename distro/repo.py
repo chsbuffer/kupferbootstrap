@@ -39,21 +39,39 @@ class Repo(RepoInfo, Generic[BinaryPackageType]):
     def resolve_url(self) -> str:
         return resolve_url(self.url_template, repo_name=self.name, arch=self.arch)
 
-    def scan(self):
+    def scan(self, allow_failure: bool = False) -> bool:
+        failed = False
         self.resolved_url = self.resolve_url()
         self.remote = not self.resolved_url.startswith('file://')
-        path = self.acquire_db_file()
+        try:
+            path = self.acquire_db_file()
+            index = tarfile.open(path)
+        except Exception as ex:
+            if not allow_failure:
+                raise ex
+            logging.error(f"Repo {self.name}, {self.arch}: Error acquiring repo DB: {ex!r}")
+            return False
         logging.debug(f'Parsing repo file at {path}')
-        with tarfile.open(path) as index:
-            for node in index.getmembers():
-                if os.path.basename(node.name) == 'desc':
-                    logging.debug(f'Parsing desc file for {os.path.dirname(node.name)}')
-                    fd = index.extractfile(node)
-                    assert fd
-                    pkg = self._parse_desc(fd.read().decode())
-                    self.packages[pkg.name] = pkg
-
+        for node in index.getmembers():
+            if os.path.basename(node.name) == 'desc':
+                pkgname = os.path.dirname(node.name)
+                logging.debug(f'Parsing desc file for {pkgname}')
+                fd = index.extractfile(node)
+                assert fd
+                contents = fd.read().decode()
+                try:
+                    pkg = self._parse_desc(contents)
+                except Exception as ex:
+                    if not allow_failure:
+                        raise ex
+                    logging.error(f'Repo {self.name}, {self.arch}: Error parsing desc for "{pkgname}": {ex!r}')
+                    failed = True
+                    continue
+                self.packages[pkg.name] = pkg
+        if failed:
+            return False
         self.scanned = True
+        return True
 
     def _parse_desc(self, desc_text: str):  # can't annotate the type properly :(
         raise NotImplementedError()
