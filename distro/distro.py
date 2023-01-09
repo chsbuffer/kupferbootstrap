@@ -72,9 +72,9 @@ class RemoteDistro(Distro[RemoteRepo]):
         return RemoteRepo(**kwargs)
 
 
-def get_base_distro(arch: str) -> RemoteDistro:
+def get_base_distro(arch: str, scan: bool = False) -> RemoteDistro:
     repos = {name: RepoInfo(url_template=url) for name, url in BASE_DISTROS[arch]['repos'].items()}
-    return RemoteDistro(arch=arch, repo_infos=repos, scan=False)
+    return RemoteDistro(arch=arch, repo_infos=repos, scan=scan)
 
 
 def get_kupfer(arch: str, url_template: str, scan: bool = False) -> Distro:
