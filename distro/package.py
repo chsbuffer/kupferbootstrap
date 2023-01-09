@@ -17,7 +17,7 @@ class BinaryPackage(PackageInfo):
     arch: str
     filename: str
     resolved_url: Optional[str]
-    _desc: Optional[dict[str, str]]
+    _desc: Optional[dict[str, str | list[str]]]
 
     def __init__(
         self,
@@ -39,17 +39,25 @@ class BinaryPackage(PackageInfo):
     @classmethod
     def parse_desc(clss, desc_str: str, resolved_repo_url=None):
         """Parses a desc file, returning a PackageInfo"""
-
-        pruned_lines = ([line.strip() for line in desc_str.split('%') if line.strip()])
-        desc = {}
-        for key, value in zip(pruned_lines[0::2], pruned_lines[1::2]):
-            desc[key.strip()] = value.strip()
+        desc: dict[str, str | list[str]] = {}
+        for segment in f'\n{desc_str}'.split('\n%'):
+            if not segment.strip():
+                continue
+            key, elements = (e.strip() for e in segment.strip().split('%\n', 1))
+            elements_split = elements.split('\n')
+            desc[key] = elements if len(elements_split) == 1 else elements_split
+        validated: dict[str, str] = {}
+        for key in ['NAME', 'VERSION', 'ARCH', 'FILENAME']:
+            assert key in desc
+            value = desc[key]
+            assert isinstance(value, str)
+            validated[key] = value
         p = clss(
-            name=desc['NAME'],
-            version=desc['VERSION'],
-            arch=desc['ARCH'],
-            filename=desc['FILENAME'],
-            resolved_url='/'.join([resolved_repo_url, desc['FILENAME']]),
+            name=validated['NAME'],
+            version=validated['VERSION'],
+            arch=validated['ARCH'],
+            filename=validated['FILENAME'],
+            resolved_url='/'.join([resolved_repo_url, validated['FILENAME']]),
         )
         p._desc = desc
         return p
