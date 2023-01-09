@@ -453,10 +453,10 @@ def cmd_build(profile_name: Optional[str] = None,
 
 
 @cmd_image.command(name='inspect')
-@click.option('--shell', '-s', is_flag=True)
+@click.option('--shell', '-s', help="Open a shell in the image's rootfs", is_flag=True)
 @click.argument('profile', required=False)
 def cmd_inspect(profile: Optional[str] = None, shell: bool = False):
-    """Open a shell in a device image"""
+    """Loop-mount the device image for inspection."""
     config.enforce_profile_device_set()
     config.enforce_profile_flavour_set()
     enforce_wrap()
