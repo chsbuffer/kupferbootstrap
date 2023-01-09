@@ -24,13 +24,14 @@ TYPES = [LK2ND, JUMPDRIVE, ABOOT]
 @click.command(name='boot')
 @profile_option
 @click.argument('type', required=False, default=ABOOT, type=click.Choice(TYPES))
-def cmd_boot(type: str, profile: Optional[str] = None):
+@click.option('-b', '--sector-size', type=int, help="Override the device's sector size", default=None)
+def cmd_boot(type: str, profile: Optional[str] = None, sector_size: Optional[int] = None):
     """Boot JumpDrive or the Kupfer aboot image. Erases Android DTBO in the process."""
     enforce_wrap()
     device = get_profile_device(profile)
     flavour = get_profile_flavour(profile).name
     deviceinfo = device.parse_deviceinfo()
-    sector_size = deviceinfo.flash_pagesize
+    sector_size = sector_size or deviceinfo.flash_pagesize
     if not sector_size:
         raise Exception(f"Device {device.name} has no flash_pagesize specified")
     image_path = get_image_path(device, flavour)

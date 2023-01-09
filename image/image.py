@@ -342,33 +342,61 @@ def cmd_image():
     """Build, flash and boot device images"""
 
 
+sectorsize_option = click.option(
+    '-b',
+    '--sector-size',
+    help="Override the device's sector size",
+    type=int,
+    default=None,
+)
+
+
 @cmd_image.command(name='build')
 @click.argument('profile_name', required=False)
-@click.option('--local-repos/--no-local-repos',
-              '-l/-L',
-              default=True,
-              show_default=True,
-              help='Whether to use local package repos at all or only use HTTPS repos.')
-@click.option('--build-pkgs/--no-build-pkgs',
-              '-p/-P',
-              default=True,
-              show_default=True,
-              help='Whether to build missing/outdated local packages if local repos are enabled.')
-@click.option('--no-download-pkgs',
-              is_flag=True,
-              default=False,
-              help='Disable trying to download packages instead of building if building is enabled.')
-@click.option('--block-target', type=click.Path(), default=None, help='Override the block device file to write the final image to')
-@click.option('--skip-part-images',
-              is_flag=True,
-              default=False,
-              help='Skip creating image files for the partitions and directly work on the target block device.')
-def cmd_build(profile_name: Optional[str] = None,
-              local_repos: bool = True,
-              build_pkgs: bool = True,
-              no_download_pkgs=False,
-              block_target: Optional[str] = None,
-              skip_part_images: bool = False):
+@click.option(
+    '--local-repos/--no-local-repos',
+    '-l/-L',
+    help='Whether to use local package repos at all or only use HTTPS repos.',
+    default=True,
+    show_default=True,
+    is_flag=True,
+)
+@click.option(
+    '--build-pkgs/--no-build-pkgs',
+    '-p/-P',
+    help='Whether to build missing/outdated local packages if local repos are enabled.',
+    default=True,
+    show_default=True,
+    is_flag=True,
+)
+@click.option(
+    '--no-download-pkgs',
+    help='Disable trying to download packages instead of building if building is enabled.',
+    default=False,
+    is_flag=True,
+)
+@click.option(
+    '--block-target',
+    help='Override the block device file to write the final image to',
+    type=click.Path(),
+    default=None,
+)
+@click.option(
+    '--skip-part-images',
+    help='Skip creating image files for the partitions and directly work on the target block device.',
+    default=False,
+    is_flag=True,
+)
+@sectorsize_option
+def cmd_build(
+    profile_name: Optional[str] = None,
+    local_repos: bool = True,
+    build_pkgs: bool = True,
+    no_download_pkgs=False,
+    block_target: Optional[str] = None,
+    sector_size: Optional[int] = None,
+    skip_part_images: bool = False,
+):
     """
     Build a device image.
 
@@ -400,7 +428,7 @@ def cmd_build(profile_name: Optional[str] = None,
         build_packages(pkgbuilds, arch, try_download=not no_download_pkgs)
 
     deviceinfo = device.parse_deviceinfo()
-    sector_size = deviceinfo.flash_pagesize
+    sector_size = sector_size or deviceinfo.flash_pagesize
     if not sector_size:
         raise Exception(f"Device {device.name} has no flash_pagesize specified")
 
@@ -453,9 +481,10 @@ def cmd_build(profile_name: Optional[str] = None,
 
 
 @cmd_image.command(name='inspect')
-@click.option('--shell', '-s', help="Open a shell in the image's rootfs", is_flag=True)
+@click.option('--shell', '-s', is_flag=True)
+@sectorsize_option
 @click.argument('profile', required=False)
-def cmd_inspect(profile: Optional[str] = None, shell: bool = False):
+def cmd_inspect(profile: Optional[str] = None, shell: bool = False, sector_size: Optional[int] = None):
     """Loop-mount the device image for inspection."""
     config.enforce_profile_device_set()
     config.enforce_profile_flavour_set()
@@ -464,7 +493,7 @@ def cmd_inspect(profile: Optional[str] = None, shell: bool = False):
     arch = device.arch
     flavour = get_profile_flavour(profile).name
     deviceinfo = device.parse_deviceinfo()
-    sector_size = deviceinfo.flash_pagesize
+    sector_size = sector_size or deviceinfo.flash_pagesize
     if not sector_size:
         raise Exception(f"Device {device.name} has no flash_pagesize specified")
 

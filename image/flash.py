@@ -64,6 +64,7 @@ def prepare_minimal_image(source_path: str, sector_size: int) -> str:
 @click.option('-m', '--method', type=click.Choice(FLASH_METHODS))
 @click.option('--split-size', help='Chunk size when splitting the image into sparse files via fastboot')
 @click.option('--shrink/--no-shrink', is_flag=True, default=True, help="Don't copy and shrink the image file to minimal size")
+@click.option('-b', '--sector-size', type=int, help="Override the device's sector size", default=None)
 @click.argument('what', type=click.Choice(list(FLASH_PARTS.values())))
 @click.argument('location', type=str, required=False)
 def cmd_flash(
@@ -73,6 +74,7 @@ def cmd_flash(
     split_size: Optional[str] = None,
     profile: Optional[str] = None,
     shrink: bool = True,
+    sector_size: Optional[int] = None,
 ):
     """Flash a partition onto a device. `location` takes either a path to a block device or one of emmc, sdcard"""
     enforce_wrap()
@@ -81,7 +83,7 @@ def cmd_flash(
     device_image_path = get_image_path(device, flavour)
 
     deviceinfo = device.parse_deviceinfo()
-    sector_size = deviceinfo.flash_pagesize
+    sector_size = sector_size or deviceinfo.flash_pagesize
     method = method or deviceinfo.flash_method
     if not sector_size:
         raise Exception(f"Device {device.name} has no flash_pagesize specified")
