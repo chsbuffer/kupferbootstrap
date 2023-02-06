@@ -257,7 +257,7 @@ class ConfigStateHolder:
         profile = self.get_profile(profile_name)
         if field not in profile or not profile[field]:
             m = (f'Profile "{profile_name}" has no {field.upper()} configured.\n'
-                 f'Please run `kupferbootstrap config profile init {field}`{arch_hint}')
+                 f'Please run `kupferbootstrap config profile init {profile_name}`{arch_hint}')
             raise Exception(m)
         return profile
 
