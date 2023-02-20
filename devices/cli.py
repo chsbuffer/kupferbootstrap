@@ -24,7 +24,13 @@ from .device import get_devices, get_profile_device
     default=False,
     help='Download packages while trying to parse deviceinfo',
 )
-def cmd_devices(json: bool = False, force_parse_deviceinfo: Optional[bool] = True, download_packages: bool = False):
+@click.option('--output-file', type=click.Path(exists=False, file_okay=True), help="Dump JSON to file")
+def cmd_devices(
+    json: bool = False,
+    force_parse_deviceinfo: Optional[bool] = True,
+    download_packages: bool = False,
+    output_file: Optional[str] = None,
+):
     'list the available devices and descriptions'
     devices = get_devices()
     if not devices:
@@ -38,7 +44,10 @@ def cmd_devices(json: bool = False, force_parse_deviceinfo: Optional[bool] = Tru
         logging.debug(f"Failed to get profile device for visual highlighting, not a problem: {ex}")
     output = ['']
     json_output = {}
-    use_colors = colors_supported(False if json else config.runtime.colors)
+    interactive_json = json and not output_file
+    if output_file:
+        json = True
+    use_colors = colors_supported(False if interactive_json else config.runtime.colors)
     for name in sorted(devices.keys()):
         prefix = ''
         suffix = ''
@@ -55,7 +64,8 @@ def cmd_devices(json: bool = False, force_parse_deviceinfo: Optional[bool] = Tru
 
         if json:
             json_output[name] = device.get_summary().toDict()
-            continue
+            if interactive_json:
+                continue
         if profile_device and profile_device.name == device.name:
             prefix = color_str('>>> ', bold=True, fg="bright_green", use_colors=use_colors)
             suffix = '\n\n'
@@ -65,7 +75,10 @@ def cmd_devices(json: bool = False, force_parse_deviceinfo: Optional[bool] = Tru
         # prefix each line in the snippet
         snippet = '\n'.join([f'{prefix}{line}' for line in snippet.split('\n')])
         output.append(f"{snippet}\n")
-    if json:
+    if interactive_json:
         output = ['\n' + json_dump(json_output, indent=4)]
+    if output_file:
+        with open(output_file, 'w') as fd:
+            fd.write(json_dump(json_output))
     for line in output:
         print(line)
