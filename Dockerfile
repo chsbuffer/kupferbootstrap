@@ -10,7 +10,7 @@ RUN pacman-key --init && \
     android-tools openssh inetutils \
     parted
 
-RUN sed -i "s/EUID == 0/EUID == -1/g" $(which makepkg)
+RUN sed -i "s/EUID == 0/EUID == -1/g" "$(which makepkg)"
 
 RUN yes | pacman -Scc
 
