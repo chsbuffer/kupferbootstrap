@@ -7,7 +7,7 @@ import sys
 from config.state import config
 from exec.file import makedir
 
-from .wrapper import BaseWrapper, WRAPPER_PATHS
+from .wrapper import Wrapper, WRAPPER_PATHS
 
 DOCKER_PATHS = WRAPPER_PATHS.copy()
 
@@ -19,7 +19,7 @@ def docker_volumes_args(volume_mappings: dict[str, str]) -> list[str]:
     return result
 
 
-class DockerWrapper(BaseWrapper):
+class DockerWrapper(Wrapper):
     type: str = 'docker'
 
     def wrap(self):
@@ -98,8 +98,9 @@ class DockerWrapper(BaseWrapper):
         cmd = docker_cmd + kupfer_cmd
         logging.debug('Wrapping in docker:' + repr(cmd))
         result = subprocess.run(cmd)
-
-        exit(result.returncode)
+        if self.should_exit:
+            exit(result.returncode)
+        return result.returncode
 
     def stop(self):
         subprocess.run(

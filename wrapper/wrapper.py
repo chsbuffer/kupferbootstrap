@@ -15,7 +15,7 @@ WRAPPER_PATHS = CHROOT_PATHS | {
 }
 
 
-class Wrapper(Protocol):
+class WrapperProtocol(Protocol):
     """Wrappers wrap kupferbootstrap in some form of isolation from the host OS, i.e. docker or chroots"""
 
     def wrap(self):
@@ -37,11 +37,13 @@ class Wrapper(WrapperProtocol):
     type: str
     wrapped_config_path: str
     argv_override: Optional[list[str]]
+    should_exit: bool
 
     def __init__(self, random_id: Optional[str] = None, name: Optional[str] = None):
         self.uuid = str(random_id or uuid.uuid4())
         self.identifier = name or f'kupferbootstrap-{self.uuid}'
         self.argv_override = None
+        self.should_exit = True
 
     def filter_args_wrapper(self, args):
         """filter out -c/--config since it doesn't apply in wrapper"""
