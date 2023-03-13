@@ -206,6 +206,8 @@ noninteractive_flag = click.option('-N', '--non-interactive', is_flag=True)
 noop_flag = click.option('--noop', '-n', help="Don't write changes to file", is_flag=True)
 noparse_flag = click.option('--no-parse', help="Don't search PKGBUILDs for devices and flavours", is_flag=True)
 
+CONFIG_MSG = ("Leave fields empty to leave them at their currently displayed value.")
+
 
 @cmd_config.command(name='init')
 @noninteractive_flag
@@ -229,6 +231,7 @@ def cmd_config_init(
 ):
     """Initialize the config file"""
     if not non_interactive:
+        logging.info(CONFIG_MSG)
         results: dict[str, dict] = {}
         for section in sections:
             if section not in CONFIG_SECTIONS:
@@ -244,7 +247,14 @@ def cmd_config_init(
                     results[section][key] = result
 
         config.update(results)
+        print("Main configuration complete")
+        if not noop:
+            if prompt_for_save(ctx):
+                config.write()
+            else:
+                return
         if 'profiles' in sections:
+            print("Configuring profiles")
             current_profile = 'default' if 'current' not in config.file.profiles else config.file.profiles.current
             new_current, _ = prompt_config('profiles.current', default=current_profile, field_type=str)
             profile, changed = prompt_profile(new_current, create=True, no_parse=no_parse)
@@ -271,6 +281,7 @@ def cmd_config_set(ctx, key_vals: list[str], non_interactive: bool = False, noop
     like `build.clean_mode=false` or alternatively just keys to get prompted if run interactively.
     """
     config.enforce_config_loaded()
+    logging.info(CONFIG_MSG)
     config_copy = deepcopy(config.file)
     for pair in key_vals:
         split_pair = pair.split('=')
@@ -328,6 +339,7 @@ def cmd_profile_init(ctx, name: Optional[str] = None, non_interactive: bool = Fa
     profile = deepcopy(PROFILE_EMPTY)
     if name == 'current':
         raise Exception("profile name 'current' not allowed")
+    logging.info(CONFIG_MSG)
     name = name or config.file.profiles.current
     if name in config.file.profiles:
         profile |= config.file.profiles[name]
