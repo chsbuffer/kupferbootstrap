@@ -86,7 +86,12 @@ class DockerWrapper(BaseWrapper):
             '--privileged',
         ] + docker_volumes_args(volumes) + [tag]
 
-        kupfer_cmd = ['kupferbootstrap', '--config', volumes[wrapped_config]] + self.filter_args_wrapper(sys.argv[1:])
+        kupfer_cmd = [
+            'kupferbootstrap',
+            '--config',
+            volumes[wrapped_config],
+        ]
+        kupfer_cmd += self.argv_override or self.filter_args_wrapper(sys.argv[1:])
         if config.runtime.uid:
             kupfer_cmd = ['wrapper_su_helper', '--uid', str(config.runtime.uid), '--username', 'kupfer', '--'] + kupfer_cmd
 
