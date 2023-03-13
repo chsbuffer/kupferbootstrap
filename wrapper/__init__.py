@@ -56,6 +56,26 @@ def wrap_if_foreign_arch(arch: Arch):
         enforce_wrap()
 
 
+def execute_without_exit(f, argv_override: Optional[list[str]], *args, **kwargs):
+    """If no wrap is needed, executes and returns f(*args, **kwargs).
+    If a wrap is determined to be necessary, force a wrap with argv_override applied.
+    If a wrap was forced, None is returned.
+    WARNING: No protection against f() returning None is taken."""
+    if not needs_wrap():
+        return f(*args, **kwargs)
+    assert get_wrapper_type() != 'none', "needs_wrap() should've returned False"
+    w = get_wrapper_impl()
+    w_cmd = w.argv_override
+    # we need to avoid throwing and catching SystemExit due to FDs getting closed otherwise
+    w_should_exit = w.should_exit
+    w.argv_override = argv_override
+    w.should_exit = False
+    w.wrap()
+    w.argv_override = w_cmd
+    w.should_exit = w_should_exit
+    return None
+
+
 nowrapper_option = click.option(
     '-w/-W',
     '--force-wrapper/--no-wrapper',
