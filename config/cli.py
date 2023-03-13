@@ -176,7 +176,12 @@ def prompt_for_save(retry_ctx: Optional[click.Context] = None):
     If `retry_ctx` is passed, the context's command will be reexecuted with the same arguments if the user chooses to retry.
     False will still be returned as the retry is expected to either save, perform another retry or arbort.
     """
+    from wrapper import is_wrapped
     if click.confirm(f'Do you want to save your changes to {config.runtime.config_file}?', default=True):
+        if is_wrapped():
+            logging.warning("Writing to config file inside wrapper."
+                            "This is pointless and probably a bug."
+                            "Your host config file will not be modified.")
         return True
     if retry_ctx:
         if click.confirm('Retry? ("n" to quit without saving)', default=True):
@@ -333,7 +338,9 @@ def cmd_profile_init(ctx, name: Optional[str] = None, non_interactive: bool = Fa
     config.update_profile(name, profile)
     if not noop:
         if not prompt_for_save(ctx):
+            logging.info("Not saving.")
             return
+
         config.write()
     else:
         logging.info(f'--noop passed, not writing to {config.runtime.config_file}!')
