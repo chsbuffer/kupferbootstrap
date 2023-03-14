@@ -24,7 +24,10 @@ BASE_PACKAGES: list[str] = BASE_LOCAL_PACKAGES + [
     'vim',
 ]
 
-POST_CMDS = ['kupfer-config apply']
+POST_INSTALL_CMDS = [
+    'kupfer-config apply',
+    'kupfer-config --user apply',
+]
 
 REPOS_CONFIG_FILE = "repos.yml"
 

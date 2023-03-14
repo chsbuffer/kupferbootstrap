@@ -11,7 +11,7 @@ from typing import Optional, Union
 
 from config.state import config, Profile
 from chroot.device import DeviceChroot, get_device_chroot
-from constants import Arch, BASE_LOCAL_PACKAGES, BASE_PACKAGES, POST_CMDS
+from constants import Arch, BASE_LOCAL_PACKAGES, BASE_PACKAGES, POST_INSTALL_CMDS
 from distro.distro import get_base_distro, get_kupfer_https
 from devices.device import Device, get_profile_device
 from exec.cmd import run_root_cmd, generate_cmd_su
@@ -318,12 +318,13 @@ def install_rootfs(
     }
     for target, content in files.items():
         root_write_file(os.path.join(chroot.path, target.lstrip('/')), content)
-    if POST_CMDS:
-        logging.info("Running post-install CMDs")
-        result = chroot.run_cmd(' && '.join(POST_CMDS))
+
+    logging.info("Running post-install CMDs")
+    for cmd in POST_INSTALL_CMDS:
+        result = chroot.run_cmd(cmd)
         assert isinstance(result, subprocess.CompletedProcess)
         if result.returncode != 0:
-            raise Exception('Error running post_cmds')
+            raise Exception(f'Error running post-install cmd: {cmd}')
 
     logging.info('Preparing to unmount chroot')
     res = chroot.run_cmd('sync && umount /boot', attach_tty=True)
