@@ -20,12 +20,12 @@ def resolve_url(url_template, repo_name: str, arch: str):
 
 
 class RepoInfo:
-    options: dict[str, str] = {}
+    options: dict[str, str]
     url_template: str
 
     def __init__(self, url_template: str, options: dict[str, str] = {}):
         self.url_template = url_template
-        self.options.update(options)
+        self.options = {} | options
 
 
 class Repo(RepoInfo, Generic[BinaryPackageType]):
