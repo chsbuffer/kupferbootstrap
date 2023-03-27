@@ -7,11 +7,11 @@ from glob import glob
 from typing import Iterable, Optional
 
 from config.state import config
-from constants import Arch, ARCHES, REPOSITORIES, SRCINFO_FILE, SRCINFO_INITIALISED_FILE, SRCINFO_METADATA_FILE, SRCINFO_TARBALL_FILE, SRCINFO_TARBALL_URL
+from constants import Arch, ARCHES, SRCINFO_FILE, SRCINFO_INITIALISED_FILE, SRCINFO_METADATA_FILE, SRCINFO_TARBALL_FILE, SRCINFO_TARBALL_URL
 from exec.cmd import run_cmd, shell_quote, CompletedProcess
 from exec.file import get_temp_dir, makedir, remove_file
 from devices.device import get_profile_device
-from distro.distro import get_kupfer_local, get_kupfer_url
+from distro.distro import get_kupfer_local, get_kupfer_url, get_kupfer_repo_names
 from distro.package import LocalPackage
 from net.ssh import run_ssh_command, scp_put_files
 from utils import download_file, git, sha256sum
@@ -269,7 +269,7 @@ def cmd_clean(what: Iterable[str] = ['all'], force: bool = False, noop: bool = F
             [
                 'clean',
                 '-dffX' + ('n' if noop else ''),
-            ] + REPOSITORIES,
+            ] + get_kupfer_repo_names(local=True),
             dir=pkgbuilds,
         )
         if result.returncode != 0:
@@ -301,7 +301,7 @@ def cmd_clean(what: Iterable[str] = ['all'], force: bool = False, noop: bool = F
 @cmd_packages.command(name='list')
 def cmd_list():
     "List information about available source packages (PKGBUILDs)"
-    pkgdir = os.path.join(config.get_path('pkgbuilds'), REPOSITORIES[0])
+    pkgdir = os.path.join(config.get_path('pkgbuilds'), get_kupfer_repo_names(local=False)[0])
     if not os.path.exists(pkgdir):
         raise Exception(f"PKGBUILDs seem not to be initialised yet: {pkgdir} doesn't exist!\n"
                         f"Try running `kupferbootstrap packages init` first!")

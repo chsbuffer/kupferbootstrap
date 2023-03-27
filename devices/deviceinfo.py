@@ -5,7 +5,7 @@ import copy
 import logging
 import os
 
-from typing import Mapping
+from typing import Any, Mapping, Optional
 
 from config.state import config
 from constants import Arch
@@ -26,7 +26,7 @@ class DeviceInfo(DataClass):
     flash_method: str
 
     @classmethod
-    def transform(cls, values: Mapping[str, str], validate: bool = True, allow_extra: bool = True):
+    def transform(cls, values: Mapping[str, str], validate: bool = True, allow_extra: bool = True, type_hints: Optional[dict[str, Any]] = None):
         return super().transform(values, validate=validate, allow_extra=allow_extra)
 
 

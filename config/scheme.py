@@ -81,7 +81,7 @@ class ProfilesSection(DataClass):
     default: SparseProfile
 
     @classmethod
-    def transform(cls, values: Mapping[str, Any], validate: bool = True, allow_extra: bool = True):
+    def transform(cls, values: Mapping[str, Any], validate: bool = True, allow_extra: bool = True, type_hints: Optional[dict[str, Any]] = None):
         results = {}
         for k, v in values.items():
             if k == 'current':

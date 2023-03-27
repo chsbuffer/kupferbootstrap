@@ -10,12 +10,12 @@ from urllib.error import HTTPError
 from typing import Iterable, Iterator, Optional
 
 from binfmt import register as binfmt_register, binfmt_is_registered
-from constants import REPOSITORIES, CROSSDIRECT_PKGS, QEMU_BINFMT_PKGS, GCC_HOSTSPECS, ARCHES, Arch, CHROOT_PATHS, MAKEPKG_CMD
+from constants import CROSSDIRECT_PKGS, QEMU_BINFMT_PKGS, GCC_HOSTSPECS, ARCHES, Arch, CHROOT_PATHS, MAKEPKG_CMD
 from config.state import config
 from exec.cmd import run_cmd, run_root_cmd
 from exec.file import makedir, remove_file, symlink
 from chroot.build import get_build_chroot, BuildChroot
-from distro.distro import get_kupfer_https, get_kupfer_local
+from distro.distro import get_kupfer_https, get_kupfer_local, get_kupfer_repo_names
 from distro.package import RemotePackage, LocalPackage
 from distro.repo import LocalRepo
 from progressbar import BAR_PADDING, get_levels_bar
@@ -84,7 +84,7 @@ def init_prebuilts(arch: Arch):
     """Ensure that all `constants.REPOSITORIES` inside `dir` exist"""
     prebuilts_dir = config.get_path('packages')
     makedir(prebuilts_dir)
-    for repo in REPOSITORIES:
+    for repo in get_kupfer_repo_names(local=True):
         init_local_repo(repo, arch)
 
 

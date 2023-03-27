@@ -9,8 +9,8 @@ from joblib import Parallel, delayed
 from typing import Iterable, Optional, TypeAlias
 
 from config.state import config, ConfigStateHolder
-from constants import REPOSITORIES
 from constants import Arch
+from distro.distro import get_kupfer_repo_names
 from distro.package import PackageInfo
 from exec.file import remove_file
 from logger import setup_logging
@@ -439,8 +439,13 @@ def get_pkgbuild_dirs(quiet: bool = True, repositories: Optional[list[str]] = No
     """Gets the relative paths to directories containing PKGBUILDs, optionally warns about dirs without a PKGBUILD"""
     pkgbuilds_dir = config.get_path('pkgbuilds')
     paths = []
-    for repo in repositories or REPOSITORIES:
-        for dir in os.listdir(os.path.join(pkgbuilds_dir, repo)):
+    for repo in repositories or get_kupfer_repo_names(local=True):
+        path = os.path.join(pkgbuilds_dir, repo)
+        if not os.path.exists(path):
+            if not quiet:
+                logging.warning(f'repo "{repo}" can\'t be listed: "{path}" doesn\'t exist; skipping')
+            continue
+        for dir in os.listdir(path):
             p = os.path.join(repo, dir)
             if not os.path.exists(os.path.join(pkgbuilds_dir, p, 'PKGBUILD')):
                 if not quiet:

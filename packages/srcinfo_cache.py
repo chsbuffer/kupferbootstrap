@@ -20,10 +20,12 @@ class JsonFile(DataClass):
 
     _filename: ClassVar[str]
     _relative_path: str
+    _strip_hidden: ClassVar[bool] = True
+    _sparse: ClassVar[bool] = False
 
     def toJSON(self) -> str:
         'Returns a json representation, with private keys that start with "_" filtered out'
-        return json.dumps({key: val for key, val in self.toDict().items() if not key.startswith('_')}, indent=2)
+        return json.dumps(self.toDict(), indent=2)
 
     def write(self):
         'Write the filtered json representation to disk'
