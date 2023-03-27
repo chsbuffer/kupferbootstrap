@@ -142,15 +142,15 @@ REPOS_CONFIG_DEFAULT = ReposConfigFile({
     },
 })
 
-_current_config = deepcopy(REPOS_CONFIG_DEFAULT)
+_current_config = None
+
 
 def get_repo_config(
     initialize_pkgbuilds: bool = False,
     repo_config_file: Optional[str] = None,
 ) -> tuple[ReposConfigFile, bool]:
     global _current_config
-    pkgbuilds_dir = config.get_path('pkgbuilds')
-    repo_config_file_default = os.path.join(pkgbuilds_dir, REPOS_CONFIG_FILE)
+    repo_config_file_default = os.path.join(config.get_path('pkgbuilds'), REPOS_CONFIG_FILE)
     if repo_config_file is None:
         repo_config_file_path = repo_config_file_default
     else:
@@ -166,7 +166,7 @@ def get_repo_config(
         return get_repo_config(initialize_pkgbuilds=False, repo_config_file=repo_config_file_path)
     conf = _current_config
     changed = False
-    if not conf or conf._path != repo_config_file_path or conf._checksum != sha256sum(repo_config_file_path):
+    if (not _current_config) or _current_config._path != repo_config_file_path or _current_config._checksum != sha256sum(repo_config_file_path):
         conf = ReposConfigFile.parse_config(repo_config_file_path)
         if repo_config_file_path == repo_config_file_default:
             _current_config = conf
