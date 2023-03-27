@@ -140,7 +140,7 @@ def get_RepoInfo(arch: Arch, repo_config: AbstrRepoConfig, default_url: Optional
     )
 
 
-def get_base_distro(arch: Arch, scan: bool = False) -> RemoteDistro:
+def get_base_distro(arch: Arch, scan: bool = False, unsigned: bool = True) -> RemoteDistro:
     base_distros = get_repo_config().base_distros
     if base_distros is None or arch not in base_distros:
         base_distros = REPOS_CONFIG_DEFAULT.base_distros
@@ -149,6 +149,8 @@ def get_base_distro(arch: Arch, scan: bool = False) -> RemoteDistro:
     distro = base_distros.get(arch)  # type: ignore[assignment]
     repos = {}
     for repo, repo_config in distro.repos.items():
+        if unsigned:
+            repo_config['options'] = (repo_config.get('options', None) or {}) | {'SigLevel': 'Never'}
         repos[repo] = get_RepoInfo(arch, repo_config, default_url=distro.remote_url)
 
     return RemoteDistro(arch=arch, repo_infos=repos, scan=scan)
