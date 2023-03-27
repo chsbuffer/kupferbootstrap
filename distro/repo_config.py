@@ -112,11 +112,14 @@ REPOS_CONFIG_DEFAULT = ReposConfigFile({
         },
         **{r: deepcopy(REPO_DEFAULTS) for r in REPOSITORIES},
     },
-    BASEDISTROS_KEY: {arch: {
-        'repos': {k: {
-            'remote_url': v
-        } for k, v in arch_def['repos'].items()},
-    } for arch, arch_def in BASE_DISTROS.items()},
+    BASEDISTROS_KEY: {
+        arch: {
+            REMOTEURL_KEY: None,
+            'repos': {k: {
+                'remote_url': v
+            } for k, v in arch_def['repos'].items()},
+        } for arch, arch_def in BASE_DISTROS.items()
+    },
 })
 
 _current_config = None
