@@ -148,6 +148,7 @@ def get_repo_config(
         if repo_config_file_path == repo_config_file_default:
             _current_config = conf
             changed = True
+    assert conf
     return conf, changed
 
 
