@@ -6,13 +6,12 @@ import toml
 import yaml
 
 from copy import deepcopy
-from typing import Any, ClassVar, Optional, Mapping
+from typing import ClassVar, Optional, Mapping
 
 from config.state import config
 from constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOSITORIES
-from dataclass import DataClass, Munch, toml_inline_dicts, TomlEncoder, TomlPreserveInlineDictEncoder
+from dataclass import DataClass, toml_inline_dicts, TomlPreserveInlineDictEncoder
 from utils import sha256sum
-
 
 REPOS_KEY = 'repos'
 REMOTEURL_KEY = 'remote_url'
@@ -56,10 +55,7 @@ class ReposConfigFile(DataClass):
         super().__init__(d=d, **kwargs)
         for repo_cls, defaults, repos, remote_url in [
             (RepoConfig, REPO_DEFAULTS, self.get(REPOS_KEY, {}), d.get(REMOTEURL_KEY, None)),
-            *[
-                (BaseDistroRepo, BASE_DISTRO_DEFAULTS, _distro.repos, _distro.get(REMOTEURL_KEY, None))
-                for _distro in self.base_distros.values()
-            ],
+                *[(BaseDistroRepo, BASE_DISTRO_DEFAULTS, _distro.repos, _distro.get(REMOTEURL_KEY, None)) for _distro in self.base_distros.values()],
         ]:
             if repos is None:
                 continue
@@ -84,7 +80,7 @@ class ReposConfigFile(DataClass):
 
     def toToml(self, strip_hidden=None, sparse=None, encoder=TomlPreserveInlineDictEncoder()):
         d = self.toDict(strip_hidden=strip_hidden, sparse=sparse)
-        for key in [REPOS_KEY, ]:
+        for key in [REPOS_KEY]:
             if key not in d or not isinstance(d[key], Mapping):
                 continue
             inline = {name: {k: toml_inline_dicts(v) for k, v in value.items()} for name, value in d[key].items()}
@@ -92,33 +88,13 @@ class ReposConfigFile(DataClass):
             d[key] = inline
         return toml.dumps(d, encoder=encoder)
 
-    def toToml_old(self, **kwargs):
-        """Dumps specific TOML format, kwargs are ignored."""
-        def toml_line(k, v):
-            assert isinstance(k, str)
-            if isinstance(v, dict):
-                assert isinstance(v, Munch)
-                return f'{k} = ' + v.toYAML(default_flow_style=True).strip('\n')
-            #return toml.dumps({k: (v if not isinstance(v, dict) else toml.}, encoder=toml.encoder.TomlPreserveInlineDictEncoder).strip('\n')
-
-        res = ''
-        for k in self.keys():
-            if k == REPOS_KEY:
-                continue
-            res
-
-        for k, v in self.repos.items():
-            res += f"[repos.{k}]\n"
-            for subk, subv in v.items():
-                res += toml_line(subk, subv) + '\n'
-            res += '\n'
-        return res
-
 
 REPO_DEFAULTS = {
     LOCALONLY_KEY: None,
     REMOTEURL_KEY: None,
-    OPTIONS_KEY: {'SigLevel': 'Never'}
+    OPTIONS_KEY: {
+        'SigLevel': 'Never'
+    },
 }
 
 BASE_DISTRO_DEFAULTS = {
@@ -131,15 +107,16 @@ REPOS_CONFIG_DEFAULT = ReposConfigFile({
     '_checksum': None,
     REMOTEURL_KEY: KUPFER_HTTPS,
     REPOS_KEY: {
-        'local': REPO_DEFAULTS | {LOCALONLY_KEY: True},
+        'local': REPO_DEFAULTS | {
+            LOCALONLY_KEY: True
+        },
         **{r: deepcopy(REPO_DEFAULTS) for r in REPOSITORIES},
     },
-    BASEDISTROS_KEY: {
-        arch: {
-            'repos': {k: {'remote_url': v} for k, v in arch_def['repos'].items()},
-        }
-        for arch, arch_def in BASE_DISTROS.items()
-    },
+    BASEDISTROS_KEY: {arch: {
+        'repos': {k: {
+            'remote_url': v
+        } for k, v in arch_def['repos'].items()},
+    } for arch, arch_def in BASE_DISTROS.items()},
 })
 
 _current_config = None

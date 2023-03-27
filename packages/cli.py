@@ -187,6 +187,7 @@ def cmd_init(
     for arch in ARCHES:
         init_prebuilts(arch)
 
+
 @cmd_packages.command(name='build')
 @click.option('--force', is_flag=True, default=False, help='Rebuild even if package is already built')
 @click.option('--arch', default=None, required=False, type=click.Choice(ARCHES), help="The CPU architecture to build for")

@@ -1,7 +1,7 @@
 from enum import IntFlag
 from typing import Generic, Mapping, Optional, TypeVar
 
-from constants import Arch, ARCHES, BASE_DISTROS, REPOSITORIES, KUPFER_BRANCH_MARKER, KUPFER_HTTPS, CHROOT_PATHS
+from constants import Arch, ARCHES, REPOSITORIES, KUPFER_BRANCH_MARKER, KUPFER_HTTPS, CHROOT_PATHS
 from generator import generate_pacman_conf_body
 from config.state import config
 
@@ -211,4 +211,3 @@ def get_kupfer_local(arch: Optional[Arch] = None, in_chroot: bool = True, scan: 
     d = get_kupfer_distro(arch, location=DistroLocation.CHROOT if in_chroot else DistroLocation.LOCAL, scan=scan)
     assert isinstance(d, LocalDistro)
     return d
-

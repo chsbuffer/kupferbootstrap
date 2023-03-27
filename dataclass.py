@@ -59,7 +59,13 @@ class DataClass(Munch):
         self.update(d | kwargs, validate=validate)
 
     @classmethod
-    def transform(cls, values: Mapping[str, Any], validate: bool = True, allow_extra: bool = False, type_hints: Optional[dict[str, Any]] = None) -> Any:
+    def transform(
+        cls,
+        values: Mapping[str, Any],
+        validate: bool = True,
+        allow_extra: bool = False,
+        type_hints: Optional[dict[str, Any]] = None,
+    ) -> Any:
         results = {}
         values = dict(values)
         print(f"\ntransform function:\n{values}, {type_hints=}")
@@ -89,7 +95,8 @@ class DataClass(Munch):
                             key_type, value_type = dict_hints[0]
                             if not isinstance(value, Mapping):
                                 if validate:
-                                    raise Exception(f"Got non-mapping {value!r} for expected dict type: {key_type} => {value_type}. Allowed classes: {_classes}")
+                                    raise Exception(
+                                        f"Got non-mapping {value!r} for expected dict type: {key_type} => {value_type}. Allowed classes: {_classes}")
                                 print(f"Got non-mapping {value!r} for expected dict type: {key_type} => {value_type}. Allowed classes: {_classes}")
                                 results[key] = value
                                 continue
@@ -264,7 +271,7 @@ class DataClass(Munch):
         self,
         strip_hidden: Optional[bool] = None,
         sparse: Optional[bool] = None,
-        **yaml_args
+        **yaml_args,
     ) -> str:
         import yaml
         yaml_args = {'sort_keys': False} | yaml_args
@@ -274,10 +281,10 @@ class DataClass(Munch):
         )
 
     def toToml(
-        self,
-        strip_hidden: Optional[bool] = None,
-        sparse: Optional[bool] = None,
-        encoder: Optional[TomlEncoder] = TomlPreserveInlineDictEncoder()
+            self,
+            strip_hidden: Optional[bool] = None,
+            sparse: Optional[bool] = None,
+            encoder: Optional[TomlEncoder] = TomlPreserveInlineDictEncoder(),
     ) -> str:
         return toml.dumps(
             self.toDict(strip_hidden=strip_hidden, sparse=sparse),
