@@ -39,7 +39,8 @@ REPOSITORIES = [
 ]
 
 DEFAULT_PACKAGE_BRANCH = 'dev'
-KUPFER_HTTPS_BASE = 'https://gitlab.com/kupfer/packages/prebuilts/-/raw/%branch%'
+KUPFER_BRANCH_MARKER = '%kupfer_branch%'
+KUPFER_HTTPS_BASE = f'https://gitlab.com/kupfer/packages/prebuilts/-/raw/{KUPFER_BRANCH_MARKER}'
 KUPFER_HTTPS = KUPFER_HTTPS_BASE + '/$arch/$repo'
 
 Arch: TypeAlias = str

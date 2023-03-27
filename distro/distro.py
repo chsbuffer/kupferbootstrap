@@ -1,7 +1,7 @@
 from enum import IntFlag
 from typing import Generic, Mapping, Optional, TypeVar
 
-from constants import Arch, ARCHES, BASE_DISTROS, REPOSITORIES, KUPFER_HTTPS, CHROOT_PATHS
+from constants import Arch, ARCHES, BASE_DISTROS, REPOSITORIES, KUPFER_BRANCH_MARKER, KUPFER_HTTPS, CHROOT_PATHS
 from generator import generate_pacman_conf_body
 from config.state import config
 
@@ -109,7 +109,7 @@ def reset_distro_caches():
 def get_kupfer_url(url: str = KUPFER_HTTPS, branch: Optional[str] = None) -> str:
     """gets the repo URL for `branch`, getting branch from config if `None` is passed."""
     branch = config.file.pacman.repo_branch if branch is None else branch
-    return url.replace('%branch%', branch)
+    return url.replace(KUPFER_BRANCH_MARKER, branch)
 
 
 def get_repo_config(*args, **kwargs) -> ReposConfigFile:
