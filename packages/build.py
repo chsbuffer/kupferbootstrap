@@ -53,13 +53,13 @@ def get_makepkg_env(arch: Optional[Arch] = None):
 def init_local_repo(repo: str, arch: Arch):
     repo_dir = os.path.join(config.get_package_dir(arch), repo)
     if not os.path.exists(repo_dir):
-        logging.info(f"Creating local repo {repo} ({arch})")
+        logging.info(f'Creating local repo "{repo}" ({arch})')
         makedir(repo_dir)
     for ext in ['db', 'files']:
         filename_stripped = f'{repo}.{ext}'
         filename = f'{filename_stripped}.tar.xz'
         if not os.path.exists(os.path.join(repo_dir, filename)):
-            logging.info(f"Initialising local repo {f'{ext} ' if ext != 'db' else ''}db for repo {repo} ({arch})")
+            logging.info(f'Initialising local repo {f"{ext} " if ext != "db" else ""}db for repo "{repo}" ({arch})')
             result = run_cmd(
                 [
                     'tar',
@@ -72,7 +72,7 @@ def init_local_repo(repo: str, arch: Arch):
             )
             assert isinstance(result, subprocess.CompletedProcess)
             if result.returncode != 0:
-                raise Exception(f'Failed to create local repo {repo}')
+                raise Exception(f'Failed to create local repo "{repo}"')
         symlink_path = os.path.join(repo_dir, filename_stripped)
         if not os.path.islink(symlink_path):
             if os.path.exists(symlink_path):
