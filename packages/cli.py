@@ -17,7 +17,7 @@ from net.ssh import run_ssh_command, scp_put_files
 from utils import download_file, git, sha256sum
 from wrapper import check_programs_wrap, enforce_wrap
 
-from .build import build_packages_by_paths
+from .build import build_packages_by_paths, init_prebuilts
 from .pkgbuild import discover_pkgbuilds, filter_pkgbuilds, get_pkgbuild_dirs, init_pkgbuilds
 
 SRCINFO_CACHE_FILES = [SRCINFO_FILE, SRCINFO_INITIALISED_FILE, SRCINFO_METADATA_FILE]
@@ -184,7 +184,8 @@ def cmd_init(
     init_pkgbuilds(interactive=not non_interactive, lazy=False, update=update, switch_branch=switch_branch, discard_changes=discard_changes)
     if init_caches:
         init_pkgbuild_caches(clean_src_dirs=clean_src_dirs)
-
+    for arch in ARCHES:
+        init_prebuilts(arch)
 
 @cmd_packages.command(name='build')
 @click.option('--force', is_flag=True, default=False, help='Rebuild even if package is already built')
