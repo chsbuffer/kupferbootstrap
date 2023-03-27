@@ -26,7 +26,7 @@ BASE_PACKAGES: list[str] = BASE_LOCAL_PACKAGES + [
 
 POST_CMDS = ['kupfer-config apply']
 
-REPOS_CONFIG_FILE = "repos.yaml"
+REPOS_CONFIG_FILE = "repos.yml"
 
 REPOSITORIES = [
     'boot',
