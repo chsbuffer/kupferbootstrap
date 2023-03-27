@@ -53,11 +53,13 @@ class ReposConfigFile(DataClass):
     _sparse: ClassVar[bool] = True
 
     def __init__(self, d, **kwargs):
-        remote_url = d.get(REMOTEURL_KEY, None)
         super().__init__(d=d, **kwargs)
-        for repo_cls, defaults, repos in [
-            (RepoConfig, REPO_DEFAULTS, self.get(REPOS_KEY, {})),
-            *[(BaseDistroRepo, BASE_DISTRO_DEFAULTS, _distro.repos) for _distro in self.base_distros.values()],
+        for repo_cls, defaults, repos, remote_url in [
+            (RepoConfig, REPO_DEFAULTS, self.get(REPOS_KEY, {}), d.get(REMOTEURL_KEY, None)),
+            *[
+                (BaseDistroRepo, BASE_DISTRO_DEFAULTS, _distro.repos, _distro.get(REMOTEURL_KEY, None))
+                for _distro in self.base_distros.values()
+            ],
         ]:
             if repos is None:
                 continue
