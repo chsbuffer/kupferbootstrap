@@ -135,7 +135,7 @@ def get_RepoInfo(arch: Arch, repo_config: AbstrRepoConfig, default_url: Optional
         url = url.get(arch, default_url)
     assert url
     return RepoInfo(
-        url_template=url,
+        url_template=get_kupfer_url(url),
         options=repo_config.get('options', None) or {},
     )
 
@@ -165,7 +165,7 @@ def get_kupfer_distro(
     repo_config = get_repo_config()
     if location == DistroLocation.REMOTE:
         cache = _kupfer_https
-        default_url = get_kupfer_url(repo_config.remote_url or KUPFER_HTTPS)
+        default_url = repo_config.remote_url or KUPFER_HTTPS
         repos = {repo: get_RepoInfo(arch, conf, default_url) for repo, conf in repo_config.repos.items() if not conf.local_only}
         cls = RemoteDistro
     elif location in [DistroLocation.CHROOT, DistroLocation.LOCAL]:

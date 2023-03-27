@@ -135,6 +135,8 @@ BASE_DISTRO_DEFAULTS = {
 }
 
 REPOS_CONFIG_DEFAULT = ReposConfigFile({
+    '_path': None,
+    '_checksum': None,
     REMOTEURL_KEY: KUPFER_HTTPS,
     REPOS_KEY: {
         'local': REPO_DEFAULTS | {LOCALONLY_KEY: True},
@@ -148,6 +150,7 @@ REPOS_CONFIG_DEFAULT = ReposConfigFile({
     },
 })
 
+_current_config = deepcopy(REPOS_CONFIG_DEFAULT)
 
 def get_repo_config(
     initialize_pkgbuilds: bool = False,
