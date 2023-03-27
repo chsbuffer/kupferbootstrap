@@ -15,7 +15,6 @@ from utils import sha256sum
 
 
 REPOS_KEY = 'repos'
-NAME_KEY = 'name'
 REMOTEURL_KEY = 'remote_url'
 LOCALONLY_KEY = 'local_only'
 OPTIONS_KEY = 'options'
@@ -35,7 +34,6 @@ class BaseDistroRepo(AbstrRepoConfig):
 
 
 class RepoConfig(AbstrRepoConfig):
-    name: str
     remote_url: Optional[str | dict[Arch, str]]
     local_only: Optional[bool]
 
@@ -69,14 +67,6 @@ class ReposConfigFile(DataClass):
                     _repo[REMOTEURL_KEY] = remote_url
                 repos[name] = repo_cls(_repo, **kwargs)
             # self.repos = repos
-
-    def toDict(self, strip_hidden: Optional[bool] = None, sparse: Optional[bool] = None):
-        d = super().toDict(strip_hidden=strip_hidden, sparse=sparse)
-        if REPOS_KEY in d:
-            for v in d[REPOS_KEY].values():
-                if isinstance(v, dict) and NAME_KEY in v:
-                    v.pop(NAME_KEY)
-        return d
 
     @staticmethod
     def parse_config(path: str) -> ReposConfigFile:
