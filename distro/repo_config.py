@@ -82,7 +82,7 @@ class ReposConfigFile(DataClass):
     def parse_config(path: str) -> ReposConfigFile:
         try:
             with open(path, 'r') as fd:
-                data = toml.load(fd)
+                data = yaml.safe_load(fd)
             data['_path'] = path
             data['_checksum'] = sha256sum(path)
             return ReposConfigFile(data, validate=True)
