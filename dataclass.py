@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import toml
 
 from dataclasses import dataclass
@@ -41,7 +42,6 @@ def resolve_dict_hints(hints: Any) -> Generator[tuple[Any, ...], None, None]:
         t_origin = get_origin(hint)
         t_args = get_args(hint)
         if t_origin == dict:
-            print(f"Yielding {t_args=}")
             yield t_args
             continue
         if t_origin in [NoneType, Optional, Union, UnionType] and t_args:
@@ -66,15 +66,17 @@ class DataClass(Munch):
         allow_extra: bool = False,
         type_hints: Optional[dict[str, Any]] = None,
     ) -> Any:
-        results = {}
+        results: dict[str, Any] = {}
         values = dict(values)
-        print(f"\ntransform function:\n{values}, {type_hints=}")
         for key in list(values.keys()):
             value = values.pop(key)
             type_hints = cls._type_hints if type_hints is None else type_hints
             if key in type_hints:
                 _classes = tuple[type](resolve_type_hint(type_hints[key]))
                 optional = NoneType in _classes
+                if optional and value is None:
+                    results[key] = None
+                    continue
                 if issubclass(_classes[0], dict):
                     assert isinstance(value, dict) or optional
                     target_class = _classes[0]
@@ -85,34 +87,37 @@ class DataClass(Munch):
                                 break
                     if target_class is dict:
                         dict_hints = list(resolve_dict_hints(type_hints[key]))
-                        print(f"Got {key=} {dict_hints=}")
                         if len(dict_hints) != 1:
-                            print(f"Received wrong amount of type hints for key {key}: {len(dict_hints)}")
+                            msg = f"transform(): Received wrong amount of type hints for key {key}: {len(dict_hints)}"
+                            if validate:
+                                raise Exception(msg)
+                            logging.warning(msg)
                         if len(dict_hints) == 1 and value is not None:
                             if len(dict_hints[0]) != 2 or not all(dict_hints[0]):
-                                print(f"Weird dict hints received: {dict_hints}")
+                                logging.debug(f"Weird dict hints received: {dict_hints}")
                                 continue
                             key_type, value_type = dict_hints[0]
                             if not isinstance(value, Mapping):
+                                msg = f"Got non-mapping {value!r} for expected dict type: {key_type} => {value_type}. Allowed classes: {_classes}"
                                 if validate:
-                                    raise Exception(
-                                        f"Got non-mapping {value!r} for expected dict type: {key_type} => {value_type}. Allowed classes: {_classes}")
-                                print(f"Got non-mapping {value!r} for expected dict type: {key_type} => {value_type}. Allowed classes: {_classes}")
+                                    raise Exception(msg)
+                                logging.warning(msg)
                                 results[key] = value
                                 continue
                             if isinstance(key_type, type):
                                 if issubclass(key_type, str):
                                     target_class = Munch
                                 else:
-                                    print(f"{key=} DICT WRONG KEY TYPE: {key_type}")
+                                    msg = f"{key=} subdict got wrong key type hint (expected str): {key_type}"
+                                    if validate:
+                                        raise Exception(msg)
+                                    logging.warning(msg)
                                 if validate:
                                     for k in value:
                                         if not isinstance(k, tuple(flatten_hints(key_type))):
                                             raise Exception(f'Subdict "{key}": wrong type for subkey "{k}": got: {type(k)}, expected: {key_type}')
                             dict_content_hints = {k: value_type for k in value}
-                            print(f"tranforming: {value=} {dict_content_hints=}")
                             value = cls.transform(value, validate=validate, allow_extra=allow_extra, type_hints=dict_content_hints)
-                            print(f"tranformed: {value=}")
                     if not isinstance(value, target_class):
                         if not (optional and value is None):
                             assert issubclass(target_class, Munch)
@@ -120,7 +125,8 @@ class DataClass(Munch):
                             kwargs = {'validate': validate} if issubclass(target_class, DataClass) else {}
                             value = target_class(value, **kwargs)  # type:ignore[attr-defined]
                     else:
-                        print(f"nothing to do: '{key}' was already {target_class}")
+                        # print(f"nothing to do: '{key}' was already {target_class})
+                        pass
                 # handle numerics
                 elif set(_classes).intersection([int, float]) and isinstance(value, str) and str not in _classes:
                     parsed_number = None
@@ -145,7 +151,6 @@ class DataClass(Munch):
                                         f'{" ,".join([ c.__name__ for c in _classes])}; '
                                         f'got: {type(value).__name__}; value: {value}')
             elif validate and not allow_extra:
-                import logging
                 logging.debug(f"{cls}: unknown key '{key}': {value}")
                 raise Exception(f'{cls}: Unknown key "{key}"')
             else:
@@ -183,6 +188,7 @@ class DataClass(Munch):
         sparse: Optional[bool] = None,
         recursive: bool = True,
         hints: Optional[dict[str, Any]] = None,
+        validate: bool = True,
     ) -> dict[Any, Any]:
         # preserve original None-type args
         _sparse = cls._sparse if sparse is None else sparse
@@ -190,64 +196,55 @@ class DataClass(Munch):
         hints = cls._type_hints if hints is None else hints
         result = dict(d)
         if not (_strip_hidden or _sparse or result):
-            print(f"shortcircuiting {d=}")
             return result
-        print(f"Stripping {result} with hints: {hints}")
         for k, v in d.items():
             type_hint = resolve_type_hint(hints.get(k, "abc"))
-            print(f"Working on key {k}, type hints: {type_hint}")
             if not isinstance(k, str):
-                print(f"skipping unknown key type {k=}")
+                msg = f"strip_dict(): unknown key type {k=}: {type(k)=}"
+                if validate:
+                    raise Exception(msg)
+                logging.warning(f"{msg} (skipping)")
                 continue
-            if strip_hidden and k.startswith('_'):
+            if _strip_hidden and k.startswith('_'):
                 result.pop(k)
                 continue
             if v is None:
                 if NoneType not in type_hint:
                     msg = f'encountered illegal null value at key "{k}" for typehint {type_hint}'
-                    if True:
+                    if validate:
                         raise Exception(msg)
-                    print(msg)
+                    logging.warning(msg)
                 if _sparse:
-                    print(f"popping empty {k}")
                     result.pop(k)
                     continue
-                print(f"encountered legal null value at {k}: {_sparse=}")
             if recursive and isinstance(v, dict):
                 if not v:
                     result[k] = {}
                     continue
                 if isinstance(v, DataClass):
-                    print(f"Dataclass detected in {k=}")
-                    result[k] = v.toDict(strip_hidden=strip_hidden, sparse=sparse)  # pass None in sparse and strip_hidden
+                    # pass None in sparse and strip_hidden
+                    result[k] = v.toDict(strip_hidden=strip_hidden, sparse=sparse)
                     continue
                 if isinstance(v, Munch):
-                    print(f"Converting munch {k=}")
                     result[k] = v.toDict()
                 if k not in hints:
-                    print(f"skipping unknown {k=}")
                     continue
-                print(f"STRIPPING RECURSIVELY: {k}: {v}, parent hints: {hints[k]}")
                 _subhints = {}
                 _hints = resolve_type_hint(hints[k], [dict])
                 hints_flat = list(flatten_hints(_hints))
-                print(f"going over hints for {k}: {_hints=} {hints_flat=}")
                 subclass = DataClass
                 for hint in hints_flat:
-                    print(f"working on hint: {hint}")
                     if get_origin(hint) == dict:
                         _valtype = get_args(hint)[1]
                         _subhints = {n: _valtype for n in v.keys()}
-                        print(f"generated {_subhints=} from {_valtype=}")
                         break
                     if isinstance(hint, type) and issubclass(hint, DataClass):
                         subclass = hint
                         _subhints = hint._type_hints
-                        print(f"found subhints: {_subhints}")
                         break
                     else:
-                        print(f"ignoring {hint=}")
-                print(f"STRIPPING SUBDICT {k=} WITH {_subhints=}")
+                        # print(f"ignoring {hint=}")
+                        continue
                 result[k] = subclass.strip_dict(
                     v,
                     hints=_subhints,
