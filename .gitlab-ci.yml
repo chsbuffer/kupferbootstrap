@@ -44,7 +44,9 @@ pytest:
 build_docker:
   stage: build
   image: docker:latest
-  services: ['docker:dind']
+  services:
+    - name: docker:dind
+      command: ["--mtu=1100"]  # very low, safe value -.-
   variables:
     DOCKER_TLS_CERTDIR: ""
   script:
