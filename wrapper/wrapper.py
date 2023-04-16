@@ -38,12 +38,14 @@ class Wrapper(WrapperProtocol):
     wrapped_config_path: str
     argv_override: Optional[list[str]]
     should_exit: bool
+    atexit_registered: bool
 
     def __init__(self, random_id: Optional[str] = None, name: Optional[str] = None):
         self.uuid = str(random_id or uuid.uuid4())
         self.identifier = name or f'kupferbootstrap-{self.uuid}'
         self.argv_override = None
         self.should_exit = True
+        self.atexit_registered = False
 
     def filter_args_wrapper(self, args):
         """filter out -c/--config since it doesn't apply in wrapper"""
@@ -89,9 +91,12 @@ class Wrapper(WrapperProtocol):
     def at_exit(self):
         os.remove(self.wrapped_config_path)
         self.stop()
+        self.atexit_registered = False
 
     def wrap(self):
-        atexit.register(self.at_exit)
+        if not self.atexit_registered:
+            atexit.register(self.at_exit)
+            self.atexit_registered = True
 
     def stop(self):
         raise NotImplementedError()
