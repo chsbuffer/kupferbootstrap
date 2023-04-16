@@ -77,13 +77,6 @@ class Wrapper(WrapperProtocol):
     ) -> str:
         wrapped_config = f'{target_path.rstrip("/")}/{self.identifier}_wrapped.toml'
 
-        # FIXME: these at_exit hooks should go and be called from somewhere better suited
-        def at_exit():
-            self.stop()
-            os.remove(wrapped_config)
-
-        atexit.register(at_exit)
-
         dump_config_file(
             file_path=wrapped_config,
             config=(config.file | {
@@ -93,8 +86,12 @@ class Wrapper(WrapperProtocol):
         self.wrapped_config_path = wrapped_config
         return wrapped_config
 
+    def at_exit(self):
+        os.remove(self.wrapped_config_path)
+        self.stop()
+
     def wrap(self):
-        raise NotImplementedError()
+        atexit.register(self.at_exit)
 
     def stop(self):
         raise NotImplementedError()

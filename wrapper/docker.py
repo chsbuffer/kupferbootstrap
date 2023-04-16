@@ -23,6 +23,7 @@ class DockerWrapper(Wrapper):
     type: str = 'docker'
 
     def wrap(self):
+        super().wrap()
         script_path = config.runtime.script_source_dir
         assert script_path
         with open(os.path.join(script_path, 'version.txt')) as version_file:
