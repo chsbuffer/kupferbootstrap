@@ -53,18 +53,18 @@ class ReposConfigFile(DataClass):
 
     def __init__(self, d, **kwargs):
         super().__init__(d=d, **kwargs)
+        self[REPOS_KEY] = self.get(REPOS_KEY, {})
         for repo_cls, defaults, repos, remote_url in [
-            (RepoConfig, REPO_DEFAULTS, self.get(REPOS_KEY, {}), d.get(REMOTEURL_KEY, None)),
+            (RepoConfig, REPO_DEFAULTS, self.get(REPOS_KEY), d.get(REMOTEURL_KEY, None)),
                 *[(BaseDistroRepo, BASE_DISTRO_DEFAULTS, _distro.repos, _distro.get(REMOTEURL_KEY, None)) for _distro in self.base_distros.values()],
         ]:
             if repos is None:
                 continue
             for name, repo in repos.items():
-                _repo = defaults | (repo or {})  # type: ignore[operator]
+                _repo = dict(defaults | (repo or {}))  # type: ignore[operator]
                 if REMOTEURL_KEY not in repo and not repo.get(LOCALONLY_KEY, None):
                     _repo[REMOTEURL_KEY] = remote_url
                 repos[name] = repo_cls(_repo, **kwargs)
-            # self.repos = repos
 
     @staticmethod
     def parse_config(path: str) -> ReposConfigFile:
@@ -103,11 +103,11 @@ BASE_DISTRO_DEFAULTS = {
 }
 
 REPOS_CONFIG_DEFAULT = ReposConfigFile({
-    '_path': None,
+    '_path': '__DEFAULTS__',
     '_checksum': None,
     REMOTEURL_KEY: KUPFER_HTTPS,
     REPOS_KEY: {
-        'local': REPO_DEFAULTS | {
+        'kupfer_local': REPO_DEFAULTS | {
             LOCALONLY_KEY: True
         },
         **{r: deepcopy(REPO_DEFAULTS) for r in REPOSITORIES},
@@ -135,24 +135,30 @@ def get_repo_config(
         repo_config_file_path = repo_config_file_default
     else:
         repo_config_file_path = repo_config_file
-    if not os.path.exists(repo_config_file_path):
+    config_exists = os.path.exists(repo_config_file_path)
+    if not config_exists and _current_config is None:
+        if initialize_pkgbuilds:
+            from packages.pkgbuild import init_pkgbuilds
+            init_pkgbuilds(update=False)
+            return get_repo_config(initialize_pkgbuilds=False, repo_config_file=repo_config_file)
         if repo_config_file is not None:
             raise Exception(f"Requested repo config {repo_config_file} doesn't exist")
-        if not initialize_pkgbuilds:
-            logging.warning(f"{repo_config_file_path} doesn't exist, using default Repositories")
-            return deepcopy(REPOS_CONFIG_DEFAULT), False
-        from packages.pkgbuild import init_pkgbuilds
-        init_pkgbuilds()
-        return get_repo_config(initialize_pkgbuilds=False, repo_config_file=repo_config_file_path)
-    conf = _current_config
+        logging.warning(f"{repo_config_file_path} doesn't exist, using built-in repo config defaults")
+        _current_config = deepcopy(REPOS_CONFIG_DEFAULT)
+        return _current_config, False
     changed = False
-    if (not _current_config) or _current_config._path != repo_config_file_path or _current_config._checksum != sha256sum(repo_config_file_path):
-        conf = ReposConfigFile.parse_config(repo_config_file_path)
-        if repo_config_file_path == repo_config_file_default:
-            _current_config = conf
-            changed = True
-    assert conf
-    return conf, changed
+    if (not _current_config) or (config_exists and _current_config._checksum != sha256sum(repo_config_file_path)):
+        if config_exists:
+            conf = ReposConfigFile.parse_config(repo_config_file_path)
+        else:
+            conf = REPOS_CONFIG_DEFAULT
+        changed = conf != (_current_config or {})
+        if changed:
+            _current_config = deepcopy(conf)
+    else:
+        logging.debug("Repo config: Cache hit!")
+    assert _current_config
+    return _current_config, changed
 
 
 def get_repos(**kwargs) -> list[RepoConfig]:

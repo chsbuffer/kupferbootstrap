@@ -1,3 +1,5 @@
+import logging
+
 from enum import IntFlag
 from typing import Generic, Mapping, Optional, TypeVar
 
@@ -115,6 +117,7 @@ def get_kupfer_url(url: str = KUPFER_HTTPS, branch: Optional[str] = None) -> str
 def get_repo_config(*args, **kwargs) -> ReposConfigFile:
     repo_config, changed = _get_repo_config(*args, **kwargs)
     if changed:
+        logging.debug("Repo configs changed, resetting caches")
         reset_distro_caches()
     return repo_config
 
@@ -132,6 +135,8 @@ def get_kupfer_repo_names(local) -> list[str]:
 def get_RepoInfo(arch: Arch, repo_config: AbstrRepoConfig, default_url: Optional[str]) -> RepoInfo:
     url = repo_config.remote_url or default_url
     if isinstance(url, dict):
+        if arch not in url and not default_url:
+            raise Exception(f"Invalid repo config: Architecture {arch} not in remote_url mapping: {url}")
         url = url.get(arch, default_url)
     assert url
     return RepoInfo(
@@ -171,8 +176,13 @@ def get_kupfer_distro(
         repos = {repo: get_RepoInfo(arch, conf, default_url) for repo, conf in repo_config.repos.items() if not conf.local_only}
         cls = RemoteDistro
     elif location in [DistroLocation.CHROOT, DistroLocation.LOCAL]:
-        cache = _kupfer_local_chroots
-        pkgdir = CHROOT_PATHS['packages'] if location == DistroLocation.CHROOT else config.get_path('packages')
+        if location == DistroLocation.CHROOT:
+            cache = _kupfer_local_chroots
+            pkgdir = CHROOT_PATHS['packages']
+        else:
+            assert location == DistroLocation.LOCAL
+            cache = _kupfer_local
+            pkgdir = config.get_path('packages')
         default_url = f"file://{pkgdir}/$arch/$repo"
         cls = LocalDistro
         repos = {}
@@ -181,7 +191,7 @@ def get_kupfer_distro(
             repo.remote_url = default_url
             repos[name] = get_RepoInfo(arch, repo, default_url)
     else:
-        raise Exception(f"Unknown location {location}")
+        raise Exception(f"Unknown distro location {location}")
     if cache is None:
         cache = {}
     assert arch
@@ -193,8 +203,8 @@ def get_kupfer_distro(
             scan=scan,
         )
         assert isinstance(distro, (LocalDistro, RemoteDistro))
-        return distro
         cache[arch] = distro
+        return distro
     item: Distro = cache[arch]
     if scan and not item.is_scanned():
         item.scan()
@@ -210,6 +220,7 @@ def get_kupfer_https(arch: Arch, scan: bool = False) -> RemoteDistro:
 def get_kupfer_local(arch: Optional[Arch] = None, in_chroot: bool = True, scan: bool = False) -> LocalDistro:
     arch = arch or config.runtime.arch
     assert arch
-    d = get_kupfer_distro(arch, location=DistroLocation.CHROOT if in_chroot else DistroLocation.LOCAL, scan=scan)
+    location = DistroLocation.CHROOT if in_chroot else DistroLocation.LOCAL
+    d = get_kupfer_distro(arch, location=location, scan=scan)
     assert isinstance(d, LocalDistro)
     return d
