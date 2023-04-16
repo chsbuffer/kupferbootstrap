@@ -2,7 +2,7 @@ import logging
 import os
 
 from shutil import copyfileobj
-from typing import Optional
+from typing import Optional, Union
 from urllib.request import urlopen
 
 from exec.file import get_temp_dir, makedir
@@ -17,7 +17,7 @@ class BinaryPackage(PackageInfo):
     arch: str
     filename: str
     resolved_url: Optional[str]
-    _desc: Optional[dict[str, str | list[str]]]
+    _desc: Optional[dict[str, Union[str, list[str]]]]
 
     def __init__(
         self,
@@ -39,7 +39,7 @@ class BinaryPackage(PackageInfo):
     @classmethod
     def parse_desc(clss, desc_str: str, resolved_repo_url=None):
         """Parses a desc file, returning a PackageInfo"""
-        desc: dict[str, str | list[str]] = {}
+        desc: dict[str, Union[str, list[str]]] = {}
         for segment in f'\n{desc_str}'.split('\n%'):
             if not segment.strip():
                 continue

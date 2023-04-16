@@ -6,7 +6,7 @@ import multiprocessing
 import os
 
 from joblib import Parallel, delayed
-from typing import Iterable, Optional, TypeAlias
+from typing import Iterable, Optional
 
 from config.state import config, ConfigStateHolder
 from constants import Arch
@@ -16,6 +16,7 @@ from exec.file import remove_file
 from logger import setup_logging
 from utils import git, git_get_branch
 from wrapper import check_programs_wrap
+from typehelpers import TypeAlias
 
 from .srcinfo_cache import SrcinfoMetaFile
 

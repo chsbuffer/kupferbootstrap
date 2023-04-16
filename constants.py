@@ -1,4 +1,4 @@
-from typing_extensions import TypeAlias
+from typehelpers import TypeAlias
 
 FASTBOOT = 'fastboot'
 FLASH_PARTS = {

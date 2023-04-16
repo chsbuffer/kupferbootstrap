@@ -3,15 +3,11 @@ from __future__ import annotations
 import logging
 import toml
 
-from dataclasses import dataclass
 from munch import Munch
 from toml.encoder import TomlEncoder, TomlPreserveInlineDictEncoder
 from typing import ClassVar, Generator, Optional, Union, Mapping, Any, get_type_hints, get_origin, get_args, Iterable
-from types import UnionType, NoneType
 
-
-def munchclass(*args, init=False, **kwargs):
-    return dataclass(*args, init=init, slots=True, **kwargs)
+from typehelpers import UnionType, NoneType
 
 
 def resolve_type_hint(hint: type, ignore_origins: list[type] = []) -> Iterable[type]:
@@ -73,12 +69,12 @@ class DataClass(Munch):
             type_hints = cls._type_hints if type_hints is None else type_hints
             if key in type_hints:
                 _classes = tuple[type](resolve_type_hint(type_hints[key]))
-                optional = NoneType in _classes
+                optional = bool(set([NoneType, None]).intersection(_classes))
                 if optional and value is None:
                     results[key] = None
                     continue
                 if issubclass(_classes[0], dict):
-                    assert isinstance(value, dict) or optional
+                    assert isinstance(value, dict) or (optional and value is None), f'{key=} is not dict: {value!r}, {_classes=}'
                     target_class = _classes[0]
                     if target_class in [None, NoneType, Optional]:
                         for target in _classes[1:]:

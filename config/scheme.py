@@ -3,11 +3,10 @@ from __future__ import annotations
 from munch import Munch
 from typing import Any, Optional, Mapping, Union
 
-from dataclass import DataClass, munchclass
+from dataclass import DataClass
 from constants import Arch
 
 
-@munchclass()
 class SparseProfile(DataClass):
     parent: Optional[str]
     device: Optional[str]
@@ -23,7 +22,6 @@ class SparseProfile(DataClass):
         return f'{type(self)}{dict.__repr__(self.toDict())}'
 
 
-@munchclass()
 class Profile(SparseProfile):
     parent: Optional[str]
     device: str
@@ -36,12 +34,10 @@ class Profile(SparseProfile):
     size_extra_mb: Union[str, int]
 
 
-@munchclass()
 class WrapperSection(DataClass):
     type: str  # NOTE: rename to 'wrapper_type' if this causes problems
 
 
-@munchclass()
 class BuildSection(DataClass):
     ccache: bool
     clean_mode: bool
@@ -50,20 +46,17 @@ class BuildSection(DataClass):
     threads: int
 
 
-@munchclass()
 class PkgbuildsSection(DataClass):
     git_repo: str
     git_branch: str
 
 
-@munchclass()
 class PacmanSection(DataClass):
     parallel_downloads: int
     check_space: bool
     repo_branch: str
 
 
-@munchclass()
 class PathsSection(DataClass):
     cache_dir: str
     chroots: str
@@ -101,7 +94,6 @@ class ProfilesSection(DataClass):
         return f'{type(self)}{dict.__repr__(self.toDict())}'
 
 
-@munchclass()
 class Config(DataClass):
     wrapper: WrapperSection
     build: BuildSection
@@ -138,7 +130,6 @@ class Config(DataClass):
         return Config(_vals, validate=validate)
 
 
-@munchclass()
 class RuntimeConfiguration(DataClass):
     verbose: bool
     no_wrap: bool

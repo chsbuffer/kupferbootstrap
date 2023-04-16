@@ -5,7 +5,7 @@ from typing import Optional
 
 from config.state import config
 from constants import Arch, ARCHES
-from config.scheme import DataClass, munchclass
+from dataclass import DataClass
 from distro.distro import get_kupfer_local
 from distro.package import LocalPackage
 from packages.pkgbuild import Pkgbuild, _pkgbuilds_cache, discover_pkgbuilds, get_pkgbuild_by_path, init_pkgbuilds
@@ -43,7 +43,6 @@ class DeviceSummary(DataClass):
         return separator.join([f"{color_str(name, bold=True, use_colors=colors)}: {value}" for name, value in fields.items()])
 
 
-@munchclass()
 class Device(DataClass):
     name: str
     arch: Arch

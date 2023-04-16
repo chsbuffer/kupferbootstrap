@@ -6,7 +6,7 @@ import toml
 import yaml
 
 from copy import deepcopy
-from typing import ClassVar, Optional, Mapping
+from typing import ClassVar, Optional, Mapping, Union
 
 from config.state import config
 from constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOSITORIES
@@ -33,7 +33,7 @@ class BaseDistroRepo(AbstrRepoConfig):
 
 
 class RepoConfig(AbstrRepoConfig):
-    remote_url: Optional[str | dict[Arch, str]]
+    remote_url: Optional[Union[str, dict[Arch, str]]]
     local_only: Optional[bool]
 
 

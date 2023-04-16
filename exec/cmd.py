@@ -5,7 +5,9 @@ import subprocess
 
 from subprocess import CompletedProcess  # make it easy for users of this module
 from shlex import quote as shell_quote
-from typing import IO, Optional, Union, TypeAlias
+from typing import IO, Optional, Union
+
+from typehelpers import TypeAlias
 
 ElevationMethod: TypeAlias = str
 
