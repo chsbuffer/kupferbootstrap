@@ -1,6 +1,5 @@
 import click
 import logging
-import os
 
 from copy import deepcopy
 from typing import Any, Iterable, Optional, Union
@@ -95,15 +94,6 @@ def prompt_profile(
         raise Exception(f'Unknown profile "{name}"')
     logging.info(f'Configuring profile "{name}"')
     changed = False
-    if not (no_parse or os.path.exists(os.path.join(config.get_path('pkgbuilds'), 'device'))):
-        logging.warning("PKGBUILDS NOT INITIALISED:\n"
-                        "Usually we'd present you with detailed lists of choices for devices and flavours in this dialogue,\n"
-                        "but your pkgbuilds.git seem to not have been cloned yet.\n\n"
-                        "You can:\n1. complete the dialogue with default values for now\n"
-                        "2. run `kupferbootstrap packages update` afterwards\n"
-                        f"3. then get back to this dialogue by running `kupferbootstrap config profile init {name}`\n\n"
-                        "You can also use `kupferbootstrap packages flavours` and `kupferbootstrap packages devices` to list them.")
-        no_parse = True
     for key, current in profile.items():
         current = profile[key]
         text = f'{name}.{key}'
