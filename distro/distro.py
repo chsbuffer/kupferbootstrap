@@ -93,6 +93,11 @@ def get_kupfer(arch: str, url_template: str, scan: bool = False) -> Distro:
         scan=scan,
     )
     assert isinstance(distro, (LocalDistro, RemoteDistro))
+    if remote:
+        assert isinstance(distro, RemoteDistro)
+        for repo in distro.repos.values():
+            repo.cache_repo_db = True
+
     return distro
 
 
@@ -145,32 +150,42 @@ def get_RepoInfo(arch: Arch, repo_config: AbstrRepoConfig, default_url: Optional
     )
 
 
-def get_base_distro(arch: Arch, scan: bool = False, unsigned: bool = True) -> RemoteDistro:
+def get_base_distro(arch: Arch, scan: bool = False, unsigned: bool = True, cache_db: bool = True) -> RemoteDistro:
     base_distros = get_repo_config().base_distros
     if base_distros is None or arch not in base_distros:
         base_distros = REPOS_CONFIG_DEFAULT.base_distros
         assert base_distros
-    distro: BaseDistro
-    distro = base_distros.get(arch)  # type: ignore[assignment]
+    distro_config: BaseDistro
+    distro_config = base_distros.get(arch)  # type: ignore[assignment]
     repos = {}
-    for repo, repo_config in distro.repos.items():
+    for repo, repo_config in distro_config.repos.items():
         if unsigned:
             repo_config['options'] = (repo_config.get('options', None) or {}) | {'SigLevel': 'Never'}
-        repos[repo] = get_RepoInfo(arch, repo_config, default_url=distro.remote_url)
+        repos[repo] = get_RepoInfo(arch, repo_config, default_url=distro_config.remote_url)
 
-    return RemoteDistro(arch=arch, repo_infos=repos, scan=scan)
+    distro = RemoteDistro(arch=arch, repo_infos=repos, scan=False)
+    if cache_db:
+        for r in distro.repos.values():
+            assert isinstance(r, RemoteRepo)
+            r.cache_repo_db = True
+    if scan:
+        distro.scan()
+    return distro
 
 
 def get_kupfer_distro(
     arch: Arch,
     location: DistroLocation,
     scan: bool = False,
+    cache_db: bool = True,
 ) -> Distro:
     global _kupfer_https, _kupfer_local, _kupfer_local_chroots
     cls: type[Distro]
     cache: Mapping[str, Distro]
     repo_config = get_repo_config()
+    remote = False
     if location == DistroLocation.REMOTE:
+        remote = True
         cache = _kupfer_https
         default_url = repo_config.remote_url or KUPFER_HTTPS
         repos = {repo: get_RepoInfo(arch, conf, default_url) for repo, conf in repo_config.repos.items() if not conf.local_only}
@@ -200,10 +215,16 @@ def get_kupfer_distro(
         distro = cls(
             arch=arch,
             repo_infos=repos,
-            scan=scan,
+            scan=False,
         )
         assert isinstance(distro, (LocalDistro, RemoteDistro))
         cache[arch] = distro
+        if remote and cache_db:
+            assert isinstance(distro, RemoteDistro)
+            for r in distro.repos.values():
+                r.cache_repo_db = True
+        if scan:
+            distro.scan()
         return distro
     item: Distro = cache[arch]
     if scan and not item.is_scanned():
@@ -211,13 +232,13 @@ def get_kupfer_distro(
     return item
 
 
-def get_kupfer_https(arch: Arch, scan: bool = False) -> RemoteDistro:
-    d = get_kupfer_distro(arch, location=DistroLocation.REMOTE, scan=scan)
+def get_kupfer_https(arch: Arch, scan: bool = False, cache_db: bool = True) -> RemoteDistro:
+    d = get_kupfer_distro(arch, location=DistroLocation.REMOTE, scan=scan, cache_db=cache_db)
     assert isinstance(d, RemoteDistro)
     return d
 
 
-def get_kupfer_local(arch: Optional[Arch] = None, in_chroot: bool = True, scan: bool = False) -> LocalDistro:
+def get_kupfer_local(arch: Optional[Arch] = None, scan: bool = False, in_chroot: bool = True) -> LocalDistro:
     arch = arch or config.runtime.arch
     assert arch
     location = DistroLocation.CHROOT if in_chroot else DistroLocation.LOCAL

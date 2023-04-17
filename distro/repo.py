@@ -2,10 +2,12 @@ from copy import deepcopy
 import logging
 import os
 import tarfile
-import tempfile
-import urllib.request
 
 from typing import Generic, TypeVar
+
+from config.state import config
+from exec.file import get_temp_dir
+from utils import download_file
 
 from .package import BinaryPackage, LocalPackage, RemotePackage
 
@@ -112,6 +114,11 @@ class LocalRepo(Repo[LocalPackage]):
 
 
 class RemoteRepo(Repo[RemotePackage]):
+    cache_repo_db: bool
+
+    def __init__(self, *kargs, cache_repo_db: bool = False, **kwargs):
+        self.cache_repo_db = cache_repo_db
+        super().__init__(*kargs, **kwargs)
 
     def _parse_desc(self, desc_text: str) -> RemotePackage:
         return RemotePackage.parse_desc(desc_text, resolved_repo_url=self.resolved_url)
@@ -119,8 +126,9 @@ class RemoteRepo(Repo[RemotePackage]):
     def acquire_db_file(self) -> str:
         uri = f'{self.resolved_url}/{self.name}.db'
         logging.info(f'Downloading repo file from {uri}')
-        with urllib.request.urlopen(uri) as request:
-            fd, path = tempfile.mkstemp()
-            with open(fd, 'wb') as writable:
-                writable.write(request.read())
-        return path
+        assert self.arch and self.name, f"repo has incomplete information: {self.name=}, {self.arch=}"
+        path = get_temp_dir() if not self.cache_repo_db else os.path.join(config.get_path('pacman'), 'repo_dbs', self.arch)
+        os.makedirs(path, exist_ok=True)
+        repo_file = f'{path}/{self.name}.tar.gz'
+        download_file(repo_file, uri, update=True)
+        return repo_file
