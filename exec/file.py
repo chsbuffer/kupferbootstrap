@@ -8,7 +8,7 @@ from shutil import rmtree
 from tempfile import mkdtemp
 from typing import Optional, Union
 
-from .cmd import run_root_cmd, elevation_noop, generate_cmd_su, wrap_in_bash, shell_quote
+from .cmd import run_cmd, run_root_cmd, elevation_noop, generate_cmd_su, wrap_in_bash, shell_quote
 from utils import get_user_name, get_group_name
 
 
@@ -41,7 +41,7 @@ def chown(path: str, user: Optional[Union[str, int]] = None, group: Optional[Uni
             raise Exception(f"Failed to change owner of '{path}' to '{owner}'")
 
 
-def chmod(path, mode: Union[int, str] = 0o0755, force_sticky=True):
+def chmod(path, mode: Union[int, str] = 0o0755, force_sticky=True, privileged: bool = True):
     if not isinstance(mode, str):
         octal = oct(mode)[2:]
     else:
@@ -54,7 +54,7 @@ def chmod(path, mode: Union[int, str] = 0o0755, force_sticky=True):
         os.chmod(path, mode=octal)  # type: ignore
     except:
         cmd = ["chmod", octal, path]
-        result = run_root_cmd(cmd)
+        result = run_cmd(cmd, switch_user='root' if privileged else None)
         assert isinstance(result, subprocess.CompletedProcess)
         if result.returncode:
             raise Exception(f"Failed to set mode of '{path}' to '{chmod}'")
@@ -174,7 +174,7 @@ def symlink(source, target):
 def get_temp_dir(register_cleanup=True, mode: int = 0o0755):
     "create a new tempdir and sanitize ownership so root can access user files as god intended"
     t = mkdtemp()
-    chmod(t, mode)
+    chmod(t, mode, privileged=False)
     if register_cleanup:
         atexit.register(remove_file, t, recursive=True)
     return t
