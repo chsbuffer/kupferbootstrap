@@ -143,7 +143,13 @@ def download_file(path: str, url: str, update: bool = True):
     url_time = None
     if os.path.exists(path) and update:
         headers = requests.head(url).headers
-        if 'last-modified' in headers:
+        file_size = os.path.getsize(path)
+        missing = [i for i in ['Content-Length', 'last-modified'] if i not in headers]
+        if missing:
+            logging.debug(f"Headers not specified: {missing}")
+        if 'Content-Length' in headers and int(headers['Content-Length']) != file_size:
+            logging.debug(f"{path} size differs: local: {file_size}, http: {headers['Content-Length']}")
+        elif 'last-modified' in headers:
             url_time = parsedate(headers['last-modified']).astimezone()
             file_time = datetime.datetime.fromtimestamp(os.path.getmtime(path)).astimezone()
             if url_time == file_time:
