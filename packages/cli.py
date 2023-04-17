@@ -158,6 +158,7 @@ def cmd_update(
     discard_changes: bool = False,
 ):
     """Update PKGBUILDs git repo"""
+    enforce_wrap()
     init_pkgbuilds(interactive=not non_interactive, lazy=False, update=True, switch_branch=switch_branch, discard_changes=discard_changes)
     if init_caches:
         init_pkgbuild_caches(clean_src_dirs=clean_src_dirs)
