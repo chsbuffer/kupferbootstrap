@@ -7,7 +7,7 @@ from typing import Mapping, Optional
 
 from constants import DEFAULT_PACKAGE_BRANCH
 
-from .scheme import Config, ConfigLoadState, DataClass, Profile, RuntimeConfiguration
+from .scheme import Config, ConfigLoadState, DictScheme, Profile, RuntimeConfiguration
 from .profile import PROFILE_DEFAULTS, PROFILE_DEFAULTS_DICT, resolve_profile
 
 CONFIG_DIR = appdirs.user_config_dir('kupfer')
@@ -95,7 +95,7 @@ def merge_configs(conf_new: Mapping[str, dict], conf_base={}, warn_missing_defau
             continue
         logging.debug(f'Parsing config section "{outer_name}"')
         # check if outer_conf is a dict
-        if not (isinstance(outer_conf, (dict, DataClass))):
+        if not (isinstance(outer_conf, (dict, DictScheme))):
             parsed[outer_name] = outer_conf
         else:
             # init section

@@ -8,12 +8,12 @@ from typing import Optional
 
 from config.state import config
 from constants import FLAVOUR_DESCRIPTION_PREFIX, FLAVOUR_INFO_FILE
-from dataclass import DataClass
+from dictscheme import DictScheme
 from packages.pkgbuild import discover_pkgbuilds, get_pkgbuild_by_name, init_pkgbuilds, Pkgbuild
 from utils import color_str
 
 
-class FlavourInfo(DataClass):
+class FlavourInfo(DictScheme):
     rootfs_size: int  # rootfs size in GB
     description: Optional[str]
 
@@ -21,7 +21,7 @@ class FlavourInfo(DataClass):
         return f'rootfs_size: {self.rootfs_size}'
 
 
-class Flavour(DataClass):
+class Flavour(DictScheme):
     name: str
     pkgbuild: Pkgbuild
     description: str
@@ -53,7 +53,7 @@ class Flavour(DataClass):
         def get_lines(k, v, key_prefix=''):
             results = []
             full_k = f'{key_prefix}.{k}' if key_prefix else k
-            if not isinstance(v, (dict, DataClass)):
+            if not isinstance(v, (dict, DictScheme)):
                 results = [f'{color_str(full_k, bold=True)}: {v}']
             else:
                 for _k, _v in v.items():

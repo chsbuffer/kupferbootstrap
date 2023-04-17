@@ -3,11 +3,11 @@ from __future__ import annotations
 from munch import Munch
 from typing import Any, Optional, Mapping, Union
 
-from dataclass import DataClass
+from dictscheme import DictScheme
 from constants import Arch
 
 
-class SparseProfile(DataClass):
+class SparseProfile(DictScheme):
     parent: Optional[str]
     device: Optional[str]
     flavour: Optional[str]
@@ -34,11 +34,11 @@ class Profile(SparseProfile):
     size_extra_mb: Union[str, int]
 
 
-class WrapperSection(DataClass):
+class WrapperSection(DictScheme):
     type: str  # NOTE: rename to 'wrapper_type' if this causes problems
 
 
-class BuildSection(DataClass):
+class BuildSection(DictScheme):
     ccache: bool
     clean_mode: bool
     crosscompile: bool
@@ -46,18 +46,18 @@ class BuildSection(DataClass):
     threads: int
 
 
-class PkgbuildsSection(DataClass):
+class PkgbuildsSection(DictScheme):
     git_repo: str
     git_branch: str
 
 
-class PacmanSection(DataClass):
+class PacmanSection(DictScheme):
     parallel_downloads: int
     check_space: bool
     repo_branch: str
 
 
-class PathsSection(DataClass):
+class PathsSection(DictScheme):
     cache_dir: str
     chroots: str
     pacman: str
@@ -69,7 +69,7 @@ class PathsSection(DataClass):
     rust: str
 
 
-class ProfilesSection(DataClass):
+class ProfilesSection(DictScheme):
     current: str
     default: SparseProfile
 
@@ -94,7 +94,7 @@ class ProfilesSection(DataClass):
         return f'{type(self)}{dict.__repr__(self.toDict())}'
 
 
-class Config(DataClass):
+class Config(DictScheme):
     wrapper: WrapperSection
     build: BuildSection
     pkgbuilds: PkgbuildsSection
@@ -130,7 +130,7 @@ class Config(DataClass):
         return Config(_vals, validate=validate)
 
 
-class RuntimeConfiguration(DataClass):
+class RuntimeConfiguration(DictScheme):
     verbose: bool
     no_wrap: bool
     error_shell: bool
@@ -142,7 +142,7 @@ class RuntimeConfiguration(DataClass):
     colors: Optional[bool]
 
 
-class ConfigLoadState(DataClass):
+class ConfigLoadState(DictScheme):
     load_finished: bool
     exception: Optional[Exception]
 

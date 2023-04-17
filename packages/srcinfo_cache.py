@@ -9,14 +9,14 @@ from typing import Any, ClassVar, Optional
 
 from config.state import config
 from constants import MAKEPKG_CMD, SRCINFO_FILE, SRCINFO_METADATA_FILE, SRCINFO_INITIALISED_FILE
-from dataclass import DataClass
+from dictscheme import DictScheme
 from exec.cmd import run_cmd
 from utils import sha256sum
 
 SRCINFO_CHECKSUM_FILES = ['PKGBUILD', SRCINFO_FILE]
 
 
-class JsonFile(DataClass):
+class JsonFile(DictScheme):
 
     _filename: ClassVar[str]
     _relative_path: str

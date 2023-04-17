@@ -157,7 +157,7 @@ def test_config_save_modified(configstate_emptyfile: ConfigStateHolder):
 def get_config_scheme(data: dict[str, Any], validate=True, allow_incomplete=False) -> Config:
     """
     helper func to ignore a false type error.
-    for some reason, mypy argues about DataClass.fromDict() instead of Config.fromDict() here
+    for some reason, mypy argues about DictScheme.fromDict() instead of Config.fromDict() here
     """
     return Config.fromDict(data, validate=validate, allow_incomplete=allow_incomplete)  # type: ignore[call-arg]
 

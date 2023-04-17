@@ -10,7 +10,7 @@ from typing import ClassVar, Optional, Mapping, Union
 
 from config.state import config
 from constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOSITORIES
-from dataclass import DataClass, toml_inline_dicts, TomlPreserveInlineDictEncoder
+from dictscheme import DictScheme, toml_inline_dicts, TomlPreserveInlineDictEncoder
 from utils import sha256sum
 
 REPOS_KEY = 'repos'
@@ -22,7 +22,7 @@ BASEDISTROS_KEY = 'base_distros'
 _current_config: Optional[ReposConfigFile]
 
 
-class AbstrRepoConfig(DataClass):
+class AbstrRepoConfig(DictScheme):
     options: Optional[dict[str, str]]
     _strip_hidden: ClassVar[bool] = True
     _sparse: ClassVar[bool] = True
@@ -37,12 +37,12 @@ class RepoConfig(AbstrRepoConfig):
     local_only: Optional[bool]
 
 
-class BaseDistro(DataClass):
+class BaseDistro(DictScheme):
     remote_url: Optional[str]
     repos: dict[str, BaseDistroRepo]
 
 
-class ReposConfigFile(DataClass):
+class ReposConfigFile(DictScheme):
     remote_url: Optional[str]
     repos: dict[str, RepoConfig]
     base_distros: dict[Arch, BaseDistro]

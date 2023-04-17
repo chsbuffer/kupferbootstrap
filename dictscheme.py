@@ -45,7 +45,7 @@ def resolve_dict_hints(hints: Any) -> Generator[tuple[Any, ...], None, None]:
         continue
 
 
-class DataClass(Munch):
+class DictScheme(Munch):
 
     _type_hints: ClassVar[dict[str, Any]]
     _strip_hidden: ClassVar[bool] = False
@@ -118,7 +118,7 @@ class DataClass(Munch):
                         if not (optional and value is None):
                             assert issubclass(target_class, Munch)
                             # despite the above assert, mypy doesn't seem to understand target_class is a Munch here
-                            kwargs = {'validate': validate} if issubclass(target_class, DataClass) else {}
+                            kwargs = {'validate': validate} if issubclass(target_class, DictScheme) else {}
                             value = target_class(value, **kwargs)  # type:ignore[attr-defined]
                     else:
                         # print(f"nothing to do: '{key}' was already {target_class})
@@ -217,7 +217,7 @@ class DataClass(Munch):
                 if not v:
                     result[k] = {}
                     continue
-                if isinstance(v, DataClass):
+                if isinstance(v, DictScheme):
                     # pass None in sparse and strip_hidden
                     result[k] = v.toDict(strip_hidden=strip_hidden, sparse=sparse)
                     continue
@@ -228,13 +228,13 @@ class DataClass(Munch):
                 _subhints = {}
                 _hints = resolve_type_hint(hints[k], [dict])
                 hints_flat = list(flatten_hints(_hints))
-                subclass = DataClass
+                subclass = DictScheme
                 for hint in hints_flat:
                     if get_origin(hint) == dict:
                         _valtype = get_args(hint)[1]
                         _subhints = {n: _valtype for n in v.keys()}
                         break
-                    if isinstance(hint, type) and issubclass(hint, DataClass):
+                    if isinstance(hint, type) and issubclass(hint, DictScheme):
                         subclass = hint
                         _subhints = hint._type_hints
                         break

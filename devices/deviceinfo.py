@@ -9,14 +9,14 @@ from typing import Any, Mapping, Optional
 
 from config.state import config
 from constants import Arch
-from dataclass import DataClass
+from dictscheme import DictScheme
 
 PMOS_ARCHES_OVERRIDES: dict[str, Arch] = {
     "armv7": 'armv7h',
 }
 
 
-class DeviceInfo(DataClass):
+class DeviceInfo(DictScheme):
     arch: Arch
     name: str
     manufacturer: str
