@@ -377,6 +377,7 @@ def cmd_check(paths):
             commit_key: is_git_package,
             source_key: False,
             sha256sums_key: False,
+            'noextract': False,
         }
         pkgbuild_path = os.path.join(config.get_path('pkgbuilds'), package.path, 'PKGBUILD')
         with open(pkgbuild_path, 'r') as file:
