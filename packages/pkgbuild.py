@@ -201,8 +201,8 @@ class Pkgbuild(PackageInfo):
         return ','.join([
             'Pkgbuild(' + self.name,
             repr(self.path),
-            self.version + ("🔄" if self.sources_refreshed else ""),
-            self.mode + ')',
+            str(self.version) + ("🔄" if self.sources_refreshed else ""),
+            repr(self.mode) + ')',
         ])
 
     def names(self) -> list[str]:
