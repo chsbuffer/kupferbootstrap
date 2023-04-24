@@ -110,14 +110,18 @@ REPOS_CONFIG_DEFAULT = ReposConfigFile({
         'kupfer_local': REPO_DEFAULTS | {
             LOCALONLY_KEY: True
         },
-        **{r: deepcopy(REPO_DEFAULTS) for r in REPOSITORIES},
+        **{
+            r: deepcopy(REPO_DEFAULTS) for r in REPOSITORIES
+        },
     },
     BASEDISTROS_KEY: {
         arch: {
             REMOTEURL_KEY: None,
-            'repos': {k: {
-                'remote_url': v
-            } for k, v in arch_def['repos'].items()},
+            'repos': {
+                k: {
+                    'remote_url': v
+                } for k, v in arch_def['repos'].items()
+            },
         } for arch, arch_def in BASE_DISTROS.items()
     },
 })
