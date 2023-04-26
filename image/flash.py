@@ -103,7 +103,7 @@ def cmd_flash(
             fastboot_flash(
                 partition=location,
                 file=image_path,
-                sparse_size='100M',  # TODO: make configurable
+                sparse_size=split_size if split_size is not None else '100M',
             )
         elif method in [JUMPDRIVE, DD]:
             if method == DD or location.startswith("/") or (location not in LOCATIONS and os.path.exists(location)):
