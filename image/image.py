@@ -44,10 +44,32 @@ def partprobe(device: str):
     return run_root_cmd(['partprobe', device])
 
 
+def bytes_to_sectors(b: int, sector_size: int, round_up: bool = True):
+    sectors, rest = divmod(b, sector_size)
+    if rest and round_up:
+        sectors += 1
+    return sectors
+
+
+def get_fs_size(partition: str) -> tuple[int, int]:
+    blocks_cmd = run_root_cmd(['dumpe2fs', '-h', partition], env={"LC_ALL": "C"}, capture_output=True)
+    if blocks_cmd.returncode != 0:
+        logging.debug(f"dumpe2fs stdout:\n: {blocks_cmd.stdout}")
+        logging.debug(f"dumpe2fs stderr:\n {blocks_cmd.stderr}")
+        raise Exception(f'Failed to detect new filesystem size of {partition}')
+    blocks_text = blocks_cmd.stdout.decode('utf-8') if blocks_cmd.stdout else ''
+    try:
+        fs_blocks = int(re.search('\\nBlock count:[ ]+([0-9]+)\\n', blocks_text, flags=re.MULTILINE).group(1))  # type: ignore[union-attr]
+        fs_block_size = int(re.search('\\nBlock size:[ ]+([0-9]+)\\n', blocks_text).group(1))  # type: ignore[union-attr]
+    except Exception as ex:
+        logging.debug(f"dumpe2fs stdout:\n  {blocks_text}")
+        logging.debug(f"dumpe2fs stderr:\n: {blocks_cmd.stderr}")
+        logging.info("Failed to scrape block size and count from dumpe2fs:", ex)
+        raise ex
+    return fs_blocks, fs_block_size
+
+
 def shrink_fs(loop_device: str, file: str, sector_size: int):
-    # 8: 512 bytes sectors
-    # 1: 4096 bytes sectors
-    sectors_blocks_factor = 4096 // sector_size
     partprobe(loop_device)
     logging.debug(f"Checking filesystem at {loop_device}p2")
     result = run_root_cmd(['e2fsck', '-fy', f'{loop_device}p2'])
@@ -55,18 +77,16 @@ def shrink_fs(loop_device: str, file: str, sector_size: int):
         # https://man7.org/linux/man-pages/man8/e2fsck.8.html#EXIT_CODE
         raise Exception(f'Failed to e2fsck {loop_device}p2 with exit code {result.returncode}')
 
-    logging.debug(f'Shrinking filesystem at {loop_device}p2')
-    result = run_root_cmd(['resize2fs', '-M', f'{loop_device}p2'], capture_output=True)
+    logging.info(f'Shrinking filesystem at {loop_device}p2')
+    result = run_root_cmd(['resize2fs', '-M', f'{loop_device}p2'])
     if result.returncode != 0:
-        print(result.stdout)
-        print(result.stderr)
         raise Exception(f'Failed to resize2fs {loop_device}p2')
 
-    logging.debug(f'Finding end block of shrunken filesystem on {loop_device}p2')
-    blocks = int(re.search('is now [0-9]+', result.stdout.decode('utf-8')).group(0).split(' ')[2])  # type: ignore
-    sectors = blocks * sectors_blocks_factor
+    logging.debug(f'Reading size of shrunken filesystem on {loop_device}p2')
+    fs_blocks, fs_block_size = get_fs_size(f'{loop_device}p2')
+    sectors = bytes_to_sectors(fs_blocks * fs_block_size, sector_size)
 
-    logging.debug(f'Shrinking partition at {loop_device}p2 to {sectors} sectors')
+    logging.info(f'Shrinking partition at {loop_device}p2 to {sectors} sectors ({sectors * sector_size} bytes)')
     child_proccess = subprocess.Popen(
         generate_cmd_su(['fdisk', '-b', str(sector_size), loop_device], switch_user='root'),  # type: ignore
         stdin=subprocess.PIPE,
@@ -92,7 +112,7 @@ def shrink_fs(loop_device: str, file: str, sector_size: int):
     if returncode > 1:
         raise Exception(f'Failed to shrink partition size of {loop_device}p2 with fdisk')
 
-    partprobe(loop_device)
+    partprobe(loop_device).check_returncode()
 
     logging.debug(f'Finding end sector of partition at {loop_device}p2')
     result = run_root_cmd(['fdisk', '-b', str(sector_size), '-l', loop_device], capture_output=True)
