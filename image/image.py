@@ -274,30 +274,31 @@ def partition_device(device: str):
         raise Exception(f'Failed to create partitions on {device}')
 
 
-def create_filesystem(device: str, blocksize: int = 4096, label=None, options=[], fstype='ext4'):
-    # blocksize can be 4k max due to pagesize
-    blocksize = min(blocksize, 4096)
-    if fstype.startswith('ext'):
-        # blocksize for ext-fs must be >=1024
-        blocksize = max(blocksize, 1024)
-
+def create_filesystem(device: str, blocksize: Optional[int], label=None, options=[], fstype='ext4'):
+    """Creates a new filesystem. Blocksize defaults"""
     labels = ['-L', label] if label else []
-    cmd = [
-        f'mkfs.{fstype}',
-        '-F',
-        '-b',
-        str(blocksize),
-    ] + labels + [device]
+    cmd = [f'mkfs.{fstype}', '-F', *labels]
+    if blocksize:
+        # blocksize can be 4k max due to pagesize
+        blocksize = min(blocksize, 4096)
+        if fstype.startswith('ext'):
+            # blocksize for ext-fs must be >=1024
+            blocksize = max(blocksize, 1024)
+        cmd += [
+            '-b',
+            str(blocksize),
+        ]
+    cmd.append(device)
     result = run_root_cmd(cmd)
     if result.returncode != 0:
         raise Exception(f'Failed to create {fstype} filesystem on {device} with CMD: {cmd}')
 
 
-def create_root_fs(device: str, blocksize: int):
+def create_root_fs(device: str, blocksize: Optional[int]):
     create_filesystem(device, blocksize=blocksize, label='kupfer_root', options=['-O', '^metadata_csum', '-N', '100000'])
 
 
-def create_boot_fs(device: str, blocksize: int):
+def create_boot_fs(device: str, blocksize: Optional[int]):
     create_filesystem(device, blocksize=blocksize, label='kupfer_boot', fstype='ext2')
 
 
@@ -447,10 +448,7 @@ def cmd_build(
         pkgbuilds |= set(filter_pkgbuilds(packages_extra, arch=arch, allow_empty_results=True, use_paths=False))
         build_packages(pkgbuilds, arch, try_download=not no_download_pkgs)
 
-    deviceinfo = device.parse_deviceinfo()
-    sector_size = sector_size or deviceinfo.flash_pagesize
-    if not sector_size:
-        raise Exception(f"Device {device.name} has no flash_pagesize specified")
+    sector_size = sector_size or device.get_image_sectorsize()
 
     image_path = block_target or get_image_path(device, flavour.name)
 
@@ -459,7 +457,7 @@ def cmd_build(
     logging.info(f'Creating new file at {image_path}')
     create_img_file(image_path, f"{rootfs_size_mb}M")
 
-    loop_device = losetup_rootfs_image(image_path, sector_size)
+    loop_device = losetup_rootfs_image(image_path, sector_size or device.get_image_sectorsize_default())
 
     partition_device(loop_device)
     partprobe(loop_device)
@@ -512,10 +510,7 @@ def cmd_inspect(profile: Optional[str] = None, shell: bool = False, sector_size:
     device = get_profile_device(profile)
     arch = device.arch
     flavour = get_profile_flavour(profile).name
-    deviceinfo = device.parse_deviceinfo()
-    sector_size = sector_size or deviceinfo.flash_pagesize
-    if not sector_size:
-        raise Exception(f"Device {device.name} has no flash_pagesize specified")
+    sector_size = sector_size or device.get_image_sectorsize_default()
 
     chroot = get_device_chroot(device.name, flavour, arch)
     image_path = get_image_path(device, flavour)

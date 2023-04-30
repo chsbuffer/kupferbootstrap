@@ -11,7 +11,7 @@ from distro.package import LocalPackage
 from packages.pkgbuild import Pkgbuild, _pkgbuilds_cache, discover_pkgbuilds, get_pkgbuild_by_path, init_pkgbuilds
 from utils import read_files_from_tar, color_str
 
-from .deviceinfo import DeviceInfo, parse_deviceinfo
+from .deviceinfo import DEFAULT_IMAGE_SECTOR_SIZE, DeviceInfo, parse_deviceinfo
 
 DEVICE_DEPRECATIONS = {
     "oneplus-enchilada": "sdm845-oneplus-enchilada",
@@ -69,7 +69,7 @@ class Device(DictScheme):
         result["package_path"] = self.package.path if self.package else None
         return DeviceSummary(result)
 
-    def parse_deviceinfo(self, try_download: bool = True, lazy: bool = True):
+    def parse_deviceinfo(self, try_download: bool = True, lazy: bool = True) -> DeviceInfo:
         if not lazy or 'deviceinfo' not in self or self.deviceinfo is None:
             # avoid import loop
             from packages.build import check_package_version_built
@@ -96,7 +96,15 @@ class Device(DictScheme):
             assert info.arch
             assert info.arch == self.arch
             self['deviceinfo'] = info
+        assert self.deviceinfo
         return self.deviceinfo
+
+    def get_image_sectorsize(self, **kwargs) -> Optional[int]:
+        """Gets the deviceinfo_rootfs_image_sector_size if defined, otherwise None"""
+        return self.parse_deviceinfo(**kwargs).get('rootfs_image_sector_size', None)
+
+    def get_image_sectorsize_default(self, **kwargs) -> int:
+        return self.get_image_sectorsize(**kwargs) or DEFAULT_IMAGE_SECTOR_SIZE
 
 
 def check_devicepkg_name(name: str, log_level: Optional[int] = None):

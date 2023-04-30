@@ -58,6 +58,7 @@ class DictScheme(Munch):
     def transform(
         cls,
         values: Mapping[str, Any],
+        *,
         validate: bool = True,
         allow_extra: bool = False,
         type_hints: Optional[dict[str, Any]] = None,
@@ -251,7 +252,7 @@ class DictScheme(Munch):
         return result
 
     def update(self, d: Mapping[str, Any], validate: bool = True):
-        Munch.update(self, type(self).transform(d, validate))
+        Munch.update(self, type(self).transform(d, validate=validate))
 
     def __init_subclass__(cls):
         super().__init_subclass__()

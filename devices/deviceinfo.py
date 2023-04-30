@@ -5,7 +5,7 @@ import copy
 import logging
 import os
 
-from typing import Any, Mapping, Optional
+from typing import Mapping, Optional
 
 from config.state import config
 from constants import Arch
@@ -14,6 +14,8 @@ from dictscheme import DictScheme
 PMOS_ARCHES_OVERRIDES: dict[str, Arch] = {
     "armv7": 'armv7h',
 }
+
+DEFAULT_IMAGE_SECTOR_SIZE = 512
 
 
 class DeviceInfo(DictScheme):
@@ -24,10 +26,12 @@ class DeviceInfo(DictScheme):
     chassis: str
     flash_pagesize: int
     flash_method: str
+    rootfs_image_sector_size: Optional[int]
 
     @classmethod
-    def transform(cls, values: Mapping[str, str], validate: bool = True, allow_extra: bool = True, type_hints: Optional[dict[str, Any]] = None):
-        return super().transform(values, validate=validate, allow_extra=allow_extra)
+    def transform(cls, values: Mapping[str, Optional[str]], **kwargs):
+        kwargs = {'allow_extra': True} | kwargs
+        return super().transform(values, **kwargs)
 
 
 # Variables from deviceinfo. Reference: <https://postmarketos.org/deviceinfo>
@@ -115,7 +119,7 @@ deviceinfo_chassis_types = [
 ]
 
 
-def sanity_check(deviceinfo: dict[str, str], device_name: str):
+def sanity_check(deviceinfo: dict[str, Optional[str]], device_name: str):
     try:
         _pmos_sanity_check(deviceinfo, device_name)
     except RuntimeError as err:
@@ -129,7 +133,7 @@ def sanity_check(deviceinfo: dict[str, str], device_name: str):
                         f"{err}")
 
 
-def _pmos_sanity_check(info: dict[str, str], device_name: str):
+def _pmos_sanity_check(info: dict[str, Optional[str]], device_name: str):
     # Resolve path for more readable error messages
     path = os.path.join(config.get_path('pkgbuilds'), 'device', device_name, 'deviceinfo')
 
@@ -194,7 +198,7 @@ def _pmos_sanity_check(info: dict[str, str], device_name: str):
                            f" and try again: {path}")
 
 
-def parse_kernel_suffix(deviceinfo: dict[str, str], kernel: str = 'mainline') -> dict[str, str]:
+def parse_kernel_suffix(deviceinfo: dict[str, Optional[str]], kernel: str = 'mainline') -> dict[str, Optional[str]]:
     """
     Remove the kernel suffix (as selected in 'pmbootstrap init') from
     deviceinfo variables. Related:
@@ -240,7 +244,7 @@ def parse_deviceinfo(deviceinfo_lines: list[str], device_name: str, kernel='main
     :param device: defaults to args.device
     :param kernel: defaults to args.kernel
     """
-    info = {}
+    info: dict[str, Optional[str]] = {}
     for line in deviceinfo_lines:
         line = line.strip()
         if line.startswith("#") or not line:
@@ -258,12 +262,12 @@ def parse_deviceinfo(deviceinfo_lines: list[str], device_name: str, kernel='main
     # Assign empty string as default
     for key in deviceinfo_attributes:
         if key not in info:
-            info[key] = ""
+            info[key] = None
 
     info = parse_kernel_suffix(info, kernel)
     sanity_check(info, device_name)
     if 'arch' in info:
         arch = info['arch']
-        info['arch'] = PMOS_ARCHES_OVERRIDES.get(arch, arch)
+        info['arch'] = PMOS_ARCHES_OVERRIDES.get(arch, arch)  # type: ignore[arg-type]
     dev = DeviceInfo.fromDict(info)
     return dev
