@@ -63,8 +63,9 @@ def prepare_minimal_image(source_path: str, sector_size: int) -> str:
 @profile_option
 @click.option('-m', '--method', type=click.Choice(FLASH_METHODS))
 @click.option('--split-size', help='Chunk size when splitting the image into sparse files via fastboot')
-@click.option('--shrink/--no-shrink', is_flag=True, default=True, help="Don't copy and shrink the image file to minimal size")
+@click.option('--shrink/--no-shrink', is_flag=True, default=True, help="Copy and shrink the image file to minimal size")
 @click.option('-b', '--sector-size', type=int, help="Override the device's sector size", default=None)
+@click.option('--confirm', is_flag=True, help="Ask for confirmation before executing fastboot commands")
 @click.argument('what', type=click.Choice(list(FLASH_PARTS.values())))
 @click.argument('location', type=str, required=False)
 def cmd_flash(
@@ -75,6 +76,7 @@ def cmd_flash(
     profile: Optional[str] = None,
     shrink: bool = True,
     sector_size: Optional[int] = None,
+    confirm: bool = False,
 ):
     """Flash a partition onto a device. `location` takes either a path to a block device or one of emmc, sdcard"""
     enforce_wrap()
@@ -91,6 +93,12 @@ def cmd_flash(
     if what not in FLASH_PARTS.values():
         raise Exception(f'Unknown what "{what}", must be one of {", ".join(FLASH_PARTS.values())}')
 
+    if location and location.startswith('aboot'):
+        raise Exception("You're trying to flash something to your aboot partition, "
+                        "which contains the android bootloader itself.\n"
+                        "This will brick your phone and is not what you want.\n"
+                        'Aborting.\nDid you mean "boot"?')
+
     if what == ROOTFS:
         path = ''
         if method not in FLASH_METHODS:
@@ -104,6 +112,7 @@ def cmd_flash(
                 partition=location,
                 file=image_path,
                 sparse_size=split_size if split_size is not None else '100M',
+                confirm=confirm,
             )
         elif method in [JUMPDRIVE, DD]:
             if method == DD or location.startswith("/") or (location not in LOCATIONS and os.path.exists(location)):
@@ -121,12 +130,12 @@ def cmd_flash(
         loop_device = losetup_rootfs_image(device_image_path, sector_size)
         if what == ABOOT:
             path = dump_aboot(f'{loop_device}p1')
-            fastboot_flash('boot', path)
+            fastboot_flash(location or 'boot', path, confirm=confirm)
         elif what == LK2ND:
             path = dump_lk2nd(f'{loop_device}p1')
-            fastboot_flash('lk2nd', path)
+            fastboot_flash(location or 'lk2nd', path, confirm=confirm)
         elif what == QHYPSTUB:
             path = dump_qhypstub(f'{loop_device}p1')
-            fastboot_flash('qhypstub', path)
+            fastboot_flash(location or 'qhypstub', path, confirm=confirm)
         else:
             raise Exception(f'Unknown what "{what}", this must be a bug in kupferbootstrap!')

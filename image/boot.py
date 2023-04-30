@@ -12,28 +12,42 @@ from flavours.flavour import get_profile_flavour
 from flavours.cli import profile_option
 from wrapper import enforce_wrap
 
-from .fastboot import fastboot_boot, fastboot_erase_dtbo
+from .fastboot import fastboot_boot, fastboot_erase
 from .image import get_device_name, losetup_rootfs_image, get_image_path, dump_aboot, dump_lk2nd
 
 LK2ND = FLASH_PARTS['LK2ND']
 ABOOT = FLASH_PARTS['ABOOT']
 
-TYPES = [LK2ND, JUMPDRIVE, ABOOT]
+BOOT_TYPES = [LK2ND, JUMPDRIVE, ABOOT]
 
 
 @click.command(name='boot')
 @profile_option
-@click.argument('type', required=False, default=ABOOT, type=click.Choice(TYPES))
+@click.argument('type', required=False, default=ABOOT, type=click.Choice(BOOT_TYPES))
 @click.option('-b', '--sector-size', type=int, help="Override the device's sector size", default=None)
-def cmd_boot(type: str, profile: Optional[str] = None, sector_size: Optional[int] = None):
+@click.option(
+    '--erase-dtbo/--no-erase-dtbo',
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Erase the DTBO partition before flashing",
+)
+@click.option('--confirm', is_flag=True, help="Ask for confirmation before executing fastboot commands")
+def cmd_boot(
+    type: str,
+    profile: Optional[str] = None,
+    sector_size: Optional[int] = None,
+    erase_dtbo: bool = True,
+    confirm: bool = False,
+):
     """Boot JumpDrive or the Kupfer aboot image. Erases Android DTBO in the process."""
     enforce_wrap()
     device = get_profile_device(profile)
     flavour = get_profile_flavour(profile).name
     deviceinfo = device.parse_deviceinfo()
-    sector_size = sector_size or deviceinfo.flash_pagesize
+    sector_size = sector_size or device.get_image_sectorsize_default()
     if not sector_size:
-        raise Exception(f"Device {device.name} has no flash_pagesize specified")
+        raise Exception(f"Device {device.name} has no rootfs_image_sector_size specified")
     image_path = get_image_path(device, flavour)
     strategy = deviceinfo.flash_method
     if not strategy:
@@ -54,7 +68,8 @@ def cmd_boot(type: str, profile: Optional[str] = None, sector_size: Optional[int
                 path = dump_aboot(loop_device + 'p1')
             else:
                 raise Exception(f'Unknown boot image type {type}')
-        fastboot_erase_dtbo()
-        fastboot_boot(path)
+        if erase_dtbo:
+            fastboot_erase('dtbo', confirm=confirm)
+        fastboot_boot(path, confirm=confirm)
     else:
-        raise Exception(f"Unknown flash strategy {strategy} for device {device.name}")
+        raise Exception(f'Unsupported flash strategy "{strategy}" for device {device.name}')
