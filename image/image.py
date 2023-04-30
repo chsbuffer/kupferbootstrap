@@ -69,6 +69,13 @@ def get_fs_size(partition: str) -> tuple[int, int]:
     return fs_blocks, fs_block_size
 
 
+def align_bytes(size_bytes: int, alignment: int = 4096) -> int:
+    rest = size_bytes % alignment
+    if rest:
+        size_bytes += alignment - rest
+    return size_bytes
+
+
 def shrink_fs(loop_device: str, file: str, sector_size: int):
     partprobe(loop_device)
     logging.debug(f"Checking filesystem at {loop_device}p2")
@@ -130,7 +137,7 @@ def shrink_fs(loop_device: str, file: str, sector_size: int):
     if end_sector == 0:
         raise Exception(f'Failed to find end sector of {loop_device}p2')
 
-    end_size = (end_sector + 1) * sector_size
+    end_size = align_bytes((end_sector + 1) * sector_size, 4096)
 
     logging.debug(f'({end_sector} + 1) sectors * {sector_size} bytes/sector = {end_size} bytes')
     logging.info(f'Truncating {file} to {end_size} bytes')
