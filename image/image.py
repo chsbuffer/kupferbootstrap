@@ -15,7 +15,7 @@ from constants import Arch, BASE_LOCAL_PACKAGES, BASE_PACKAGES, POST_INSTALL_CMD
 from distro.distro import get_base_distro, get_kupfer_https
 from devices.device import Device, get_profile_device
 from exec.cmd import run_root_cmd, generate_cmd_su
-from exec.file import root_write_file, root_makedir, makedir
+from exec.file import get_temp_dir, root_write_file, root_makedir, makedir
 from flavours.flavour import Flavour, get_profile_flavour
 from net.ssh import copy_ssh_keys
 from packages.build import build_enable_qemu_binfmt, build_packages, filter_pkgbuilds
@@ -220,14 +220,14 @@ def mount_chroot(rootfs_source: str, boot_src: str, chroot: DeviceChroot):
 
 
 def dump_file_from_image(image_path: str, file_path: str, target_path: Optional[str] = None):
-    target_path = target_path or os.path.join('/tmp', os.path.basename(file_path))
+    target_path = target_path or os.path.join(get_temp_dir(), os.path.basename(file_path))
     result = run_root_cmd([
         'debugfs',
         image_path,
         '-R',
         f'\'dump /{file_path.lstrip("/")} {target_path}\'',
     ])
-    if result.returncode != 0:
+    if result.returncode != 0 or not os.path.exists(target_path):
         raise Exception(f'Failed to dump {file_path} from /boot')
     return target_path
 
