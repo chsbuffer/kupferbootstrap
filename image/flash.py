@@ -1,6 +1,7 @@
 import shutil
 import os
 import click
+import logging
 
 from typing import Optional
 
@@ -49,7 +50,7 @@ def test_blockdev(path: str):
 def prepare_minimal_image(source_path: str, sector_size: int) -> str:
     minimal_image_dir = get_temp_dir(register_cleanup=True)
     minimal_image_path = os.path.join(minimal_image_dir, f'minimal-{os.path.basename(source_path)}')
-
+    logging.info(f"Copying image {os.path.basename(source_path)} to {minimal_image_dir} for shrinking")
     shutil.copyfile(source_path, minimal_image_path)
 
     loop_device = losetup_rootfs_image(minimal_image_path, sector_size)
