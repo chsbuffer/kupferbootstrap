@@ -7,7 +7,7 @@ from typing import Optional
 
 from chroot.abstract import Chroot
 from constants import Arch, QEMU_ARCHES
-from exec.cmd import run_root_cmd
+from exec.cmd import run_root_cmd, CompletedProcess
 from utils import mount
 
 
@@ -66,13 +66,11 @@ def binfmt_ensure_mounted(chroot: Optional[Chroot] = None):
     binfmt_path = '/proc/sys/fs/binfmt_misc'
     register_path = binfmt_path + '/register'
     if chroot:
-        binfmt_path = chroot.get_path(binfmt_path)
         register_path = chroot.get_path(register_path)
-        chroot.activate()
     if not os.path.exists(register_path):
         logging.info('mounting binfmt_misc')
-        result = mount('binfmt_misc', binfmt_path, options=[], fs_type='binfmt_misc')
-        if result.returncode != 0:
+        result = (chroot.mount if chroot else mount)('binfmt_misc', binfmt_path, options=[], fs_type='binfmt_misc')  # type: ignore[operator]
+        if (isinstance(result, CompletedProcess) and result.returncode != 0) or not result:
             raise Exception(f'Failed mounting binfmt_misc to {binfmt_path}')
 
 
