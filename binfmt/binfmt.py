@@ -97,6 +97,10 @@ def binfmt_register(arch: Arch, chroot: Optional[Chroot] = None):
     info = lines[qemu_arch]
     code = info['line']
 
+    if arch == os.uname().machine:
+        logging.fatal("Attempted to register qemu binfmt for host architecture, skipping!")
+        return
+
     # Register in binfmt_misc
     logging.info(f"Registering qemu binfmt ({arch})")
     _runcmd(f'echo "{code}" > "{register_path}" 2>/dev/null')  # use path without chroot path prefix
@@ -113,6 +117,9 @@ def binfmt_unregister(arch, chroot: Optional[Chroot] = None):
     if chroot:
         binfmt_file = chroot.get_path(binfmt_file)
     if not os.path.exists(binfmt_file):
+        logging.debug(f"qemu binfmt for {arch} not registered")
         return
     logging.info(f"Unregistering qemu binfmt ({arch})")
     run_root_cmd(f"echo -1 > {binfmt_file}")
+    if binfmt_is_registered(arch, chroot=chroot):
+        raise Exception(f'Failed to UNregister qemu-user for {arch} with binfmt_misc, {chroot=}')
