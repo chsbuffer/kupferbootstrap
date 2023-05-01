@@ -9,7 +9,7 @@ from copy import deepcopy
 from urllib.error import HTTPError
 from typing import Iterable, Iterator, Optional
 
-from binfmt.binfmt import binfmt_register
+from binfmt.binfmt import binfmt_is_registered, binfmt_register
 from constants import CROSSDIRECT_PKGS, QEMU_BINFMT_PKGS, GCC_HOSTSPECS, ARCHES, Arch, CHROOT_PATHS, MAKEPKG_CMD
 from config.state import config
 from exec.cmd import run_cmd, run_root_cmd
@@ -427,7 +427,7 @@ def setup_build_chroot(
 ) -> BuildChroot:
     assert config.runtime.arch
     if arch != config.runtime.arch:
-        build_enable_qemu_binfmt(arch)
+        build_enable_qemu_binfmt(arch, lazy=False)
     init_prebuilts(arch)
     chroot = get_build_chroot(arch, add_kupfer_repos=add_kupfer_repos)
     chroot.mount_packages()
@@ -797,16 +797,23 @@ _qemu_enabled: dict[Arch, bool] = {arch: False for arch in ARCHES}
 
 
 def build_enable_qemu_binfmt(arch: Arch, repo: Optional[dict[str, Pkgbuild]] = None, lazy: bool = True, native_chroot: Optional[BuildChroot] = None):
+    """
+    Build and enable qemu-user-static, binfmt and crossdirect
+    Specify lazy=False to force building the packages.
+    """
     if arch not in ARCHES:
-        raise Exception(f'Unknown architecture "{arch}". Choices: {", ".join(ARCHES)}')
-    logging.info('Installing qemu-user (building if necessary)')
-    if lazy and _qemu_enabled[arch]:
-        _qemu_enabled[arch] = True
+        raise Exception(f'Unknown binfmt architecture "{arch}". Choices: {", ".join(ARCHES)}')
+    if _qemu_enabled[arch] or (lazy and binfmt_is_registered(arch)):
+        if not _qemu_enabled[arch]:
+            logging.info(f"qemu binfmt for {arch} was already enabled!")
         return
     native = config.runtime.arch
     assert native
     if arch == native:
+        _qemu_enabled[arch] = True
+        logging.warning("Not enabling binfmt for host architecture!")
         return
+    logging.info('Installing qemu-user (building if necessary)')
     check_programs_wrap(['pacman', 'makepkg', 'pacstrap'])
     # build qemu-user, binfmt, crossdirect
     build_packages_by_paths(
