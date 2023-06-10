@@ -313,7 +313,7 @@ def cmd_list():
     logging.info(f'Done! {len(packages)} Pkgbuilds:')
     for name in sorted(packages.keys()):
         p = packages[name]
-        print(f'name: {p.name}; ver: {p.version}; provides: {p.provides}; replaces: {p.replaces};'
+        print(f'name: {p.name}; ver: {p.version}; mode: {p.mode}; provides: {p.provides}; replaces: {p.replaces};'
               f'local_depends: {p.local_depends}; depends: {p.depends}')
 
 
