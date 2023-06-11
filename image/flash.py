@@ -79,7 +79,16 @@ def cmd_flash(
     sector_size: Optional[int] = None,
     confirm: bool = False,
 ):
-    """Flash a partition onto a device. `location` takes either a path to a block device or one of emmc, sdcard"""
+    """
+    Flash a partition onto a device.
+
+    The syntax of LOCATION depends on the flashing method and is usually only required for flashing "rootfs":
+
+    \b
+    - fastboot: the regular fastboot partition identifier. Usually "userdata"
+    - dd: a path to a block device
+    - jumpdrive: one of "emmc", "sdcard" or a path to a block device
+    """
     enforce_wrap()
     device = get_profile_device(profile)
     flavour = get_profile_flavour(profile).name
@@ -93,10 +102,11 @@ def cmd_flash(
         raise Exception(f'Unknown what "{what}", must be one of {", ".join(FLASH_PARTS.values())}')
 
     if location and location.startswith('aboot'):
-        raise Exception("You're trying to flash something to your aboot partition, "
+        raise Exception("You're trying to flash something "
+                        f"to your aboot partition ({location!r}), "
                         "which contains the android bootloader itself.\n"
                         "This will brick your phone and is not what you want.\n"
-                        'Aborting.\nDid you mean "boot"?')
+                        'Aborting.\nDid you mean to flash to "boot"?')
 
     if what == ROOTFS:
         path = ''

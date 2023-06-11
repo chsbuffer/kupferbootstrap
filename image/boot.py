@@ -18,7 +18,7 @@ from .image import get_device_name, losetup_rootfs_image, get_image_path, dump_a
 LK2ND = FLASH_PARTS['LK2ND']
 ABOOT = FLASH_PARTS['ABOOT']
 
-BOOT_TYPES = [LK2ND, JUMPDRIVE, ABOOT]
+BOOT_TYPES = [ABOOT, LK2ND, JUMPDRIVE]
 
 
 @click.command(name='boot')
