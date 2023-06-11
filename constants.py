@@ -2,8 +2,8 @@ from typehelpers import TypeAlias
 
 FASTBOOT = 'fastboot'
 FLASH_PARTS = {
-    'ROOTFS': 'rootfs',
-    'ABOOT': 'aboot',
+    'FULL': 'full',
+    'ABOOT': 'abootimg',
     'LK2ND': 'lk2nd',
     'QHYPSTUB': 'qhypstub',
 }

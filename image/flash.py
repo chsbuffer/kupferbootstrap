@@ -19,7 +19,7 @@ from .image import dd_image, dump_aboot, dump_lk2nd, dump_qhypstub, get_image_pa
 ABOOT = FLASH_PARTS['ABOOT']
 LK2ND = FLASH_PARTS['LK2ND']
 QHYPSTUB = FLASH_PARTS['QHYPSTUB']
-ROOTFS = FLASH_PARTS['ROOTFS']
+FULL_IMG = FLASH_PARTS['FULL']
 
 DD = 'dd'
 
@@ -82,7 +82,7 @@ def cmd_flash(
     """
     Flash a partition onto a device.
 
-    The syntax of LOCATION depends on the flashing method and is usually only required for flashing "rootfs":
+    The syntax of LOCATION depends on the flashing method and is usually only required for flashing "full":
 
     \b
     - fastboot: the regular fastboot partition identifier. Usually "userdata"
@@ -108,7 +108,7 @@ def cmd_flash(
                         "This will brick your phone and is not what you want.\n"
                         'Aborting.\nDid you mean to flash to "boot"?')
 
-    if what == ROOTFS:
+    if what == FULL_IMG:
         path = ''
         if method not in FLASH_METHODS:
             raise Exception(f"Flash method {method} not supported!")
