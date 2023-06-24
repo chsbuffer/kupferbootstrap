@@ -123,24 +123,24 @@ def prompt_choice(current: Optional[Any], key: str, choices: Iterable[Any], allo
 
 
 def prompt_profile_device(current: Optional[str], profile_name: str) -> tuple[str, bool]:
-    print(click.style("Pick your device!\nThese are the available devices:", bold=True))
+    click.echo(click.style("Pick your device!\nThese are the available devices:", bold=True))
     devices = execute_without_exit(get_devices, ['devices'])
     if devices is None:
-        print("(wrapper mode, input for this field will not be checked for correctness)")
+        logging.warning("(wrapper mode, input for this field will not be checked for correctness)")
         return prompt_config(text=f'{profile_name}.device', default=current)
     for dev in sorted(devices.keys()):
-        print(f"{devices[dev]}\n")
+        click.echo(devices[dev].nice_str(newlines=True, colors=True)+"\n")
     return prompt_choice(current, f'profiles.{profile_name}.device', devices.keys())
 
 
 def prompt_profile_flavour(current: Optional[str], profile_name: str) -> tuple[str, bool]:
-    print(click.style("Pick your flavour!\nThese are the available flavours:", bold=True))
+    click.echo(click.style("Pick your flavour!\nThese are the available flavours:", bold=True))
     flavours = execute_without_exit(get_flavours, ['flavours'])
     if flavours is None:
-        print("(wrapper mode, input for this field will not be checked for correctness)")
+        logging.warning("(wrapper mode, input for this field will not be checked for correctness)")
         return prompt_config(text=f'{profile_name}.flavour', default=current)
     for f in sorted(flavours.keys()):
-        print(flavours[f])
+        click.echo(flavours[f].nice_str(newlines=True, colors=True)+"\n")
     return prompt_choice(current, f'profiles.{profile_name}.flavour', flavours.keys())
 
 
