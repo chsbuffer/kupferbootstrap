@@ -21,7 +21,8 @@ ENV PATH=/app/bin:/app/local/bin:$PATH
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+# TODO: pip packaging so we don't need --break-system-packages
+RUN pip install -r requirements.txt --break-system-packages
 
 COPY . .
 

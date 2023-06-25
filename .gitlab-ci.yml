@@ -7,7 +7,7 @@ format:
   stage: check
   image: python
   before_script:
-    - pip install yapf autoflake
+    - pip install yapf autoflake --break-system-packages
   script:
     - ./format.sh --check
 
@@ -15,7 +15,7 @@ typecheck:
   stage: check
   image: python
   before_script:
-    - pip install mypy
+    - pip install mypy --break-system-packages
   script:
     - ./typecheck.sh --non-interactive --junit-xml mypy-report.xml
   artifacts:
@@ -27,7 +27,7 @@ pytest:
   image: archlinux
   before_script:
     - pacman -Sy --noconfirm --needed archlinux-keyring && pacman -Su --noconfirm python python-pip sudo git base-devel arch-install-scripts rsync
-    - pip install -r test_requirements.txt -r requirements.txt
+    - pip install -r test_requirements.txt -r requirements.txt --break-system-packages
     - 'echo "kupfer ALL = (ALL) NOPASSWD: ALL" > /etc/sudoers.d/kupfer_all'
     - useradd -m kupfer
     - chmod 777 .
@@ -77,7 +77,7 @@ push_docker:
     DOCS_MAKE_TARGET: "html"
     DOCS_MAKE_THREADS: 6
   before_script: &docs_before_script
-    - pip install -r requirements.txt -r docs/requirements.txt
+    - pip install -r requirements.txt -r docs/requirements.txt --break-system-packages
   script: &docs_script
     - make -C docs -j$DOCS_MAKE_THREADS SPHINXARGS="$DOCS_SPHINXARGS" $DOCS_MAKE_TARGET
     - mv "docs/$DOCS_MAKE_TARGET" public
