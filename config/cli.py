@@ -2,14 +2,15 @@ import click
 import logging
 
 from copy import deepcopy
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Mapping, Optional, Union
 
 from devices.device import get_devices
 from flavours.flavour import get_flavours
+from utils import color_str, colors_supported, color_mark_selected
 from wrapper import execute_without_exit
 
 from .scheme import Profile
-from .profile import PROFILE_EMPTY, PROFILE_DEFAULTS
+from .profile import PROFILE_EMPTY, PROFILE_DEFAULTS, resolve_profile_attr, SparseProfile
 from .state import config, CONFIG_DEFAULTS, CONFIG_SECTIONS, merge_configs
 
 
@@ -87,6 +88,7 @@ def prompt_profile(
         raise Exception("profile name 'current' not allowed")
     # don't use get_profile() here because we need the sparse profile
     if name in config.file.profiles:
+        logging.debug(f"Merging with existing profile config for {name}")
         profile |= config.file.profiles[name]
     elif create:
         logging.info(f"Profile {name} doesn't exist yet, creating new profile.")
@@ -105,7 +107,7 @@ def prompt_profile(
                 parse_prompt = prompt_profile_flavour
             else:
                 raise Exception(f'config: Unhandled parseable field {key}, this is a bug in kupferbootstrap.')
-            result, _changed = parse_prompt(current, name)  # type: ignore
+            result, _changed = parse_prompt(current=current, profile_name=name, sparse_profiles=config.file.profiles)  # type: ignore
         else:
             result, _changed = prompt_config(text=text, default=current, field_type=type(PROFILE_DEFAULTS[key]))  # type: ignore
         if _changed:
@@ -122,26 +124,56 @@ def prompt_choice(current: Optional[Any], key: str, choices: Iterable[Any], allo
     return res, res == current
 
 
-def prompt_profile_device(current: Optional[str], profile_name: str) -> tuple[str, bool]:
-    click.echo(click.style("Pick your device!\nThese are the available devices:", bold=True))
-    devices = execute_without_exit(get_devices, ['devices'])
-    if devices is None:
-        logging.warning("(wrapper mode, input for this field will not be checked for correctness)")
-        return prompt_config(text=f'{profile_name}.device', default=current)
-    for dev in sorted(devices.keys()):
-        click.echo(devices[dev].nice_str(newlines=True, colors=True)+"\n")
-    return prompt_choice(current, f'profiles.{profile_name}.device', devices.keys())
+def resolve_profile_field(current: Any, *kargs):
+    try:
+        return resolve_profile_attr(*kargs)
+    except KeyError as err:
+        logging.debug(err)
+        return current, None
 
 
-def prompt_profile_flavour(current: Optional[str], profile_name: str) -> tuple[str, bool]:
-    click.echo(click.style("Pick your flavour!\nThese are the available flavours:", bold=True))
-    flavours = execute_without_exit(get_flavours, ['flavours'])
-    if flavours is None:
+def prompt_wrappable(
+    attr_name: str,
+    native_cmd: Callable,
+    cli_cmd: list[str],
+    current: Optional[str],
+    profile_name: str,
+    sparse_profiles: Mapping[str, SparseProfile],
+    use_colors: Optional[bool] = None,
+) -> tuple[str, bool]:
+    use_colors = colors_supported(use_colors)
+
+    def bold(s: str, _bold=True, **kwargs):
+        return color_str(s, use_colors=use_colors, bold=_bold, **kwargs)
+
+    def green(s: str, _bold=True):
+        return bold(s, fg="bright_green", _bold=_bold)
+
+    print(bold(f"Pick your {attr_name}!\nThese are the available choices:"))
+    items = execute_without_exit(native_cmd, cli_cmd)
+    selected, inherited_from = resolve_profile_field(current, profile_name, attr_name, sparse_profiles)
+    logging.debug(f"Acquired {attr_name=}={selected} from {inherited_from}")
+    if items is None:
         logging.warning("(wrapper mode, input for this field will not be checked for correctness)")
-        return prompt_config(text=f'{profile_name}.flavour', default=current)
-    for f in sorted(flavours.keys()):
-        click.echo(flavours[f].nice_str(newlines=True, colors=True)+"\n")
-    return prompt_choice(current, f'profiles.{profile_name}.flavour', flavours.keys())
+        return prompt_config(text=f'{profile_name}.{attr_name}', default=current)
+    for key in sorted(items.keys()):
+        text = items[key].nice_str(newlines=True, colors=use_colors)
+        if key == selected:
+            inherit_suffix = ''
+            if inherited_from not in [None, profile_name]:
+                quote = '"'
+                inherit_suffix = f'{bold(" (inherited from profile "+quote)}{green(inherited_from)}{bold(quote+")")}'
+            text = color_mark_selected(text, f'"{green(profile_name)}"{inherit_suffix}')
+        print(text + '\n')
+    return prompt_choice(current, f'profiles.{profile_name}.{attr_name}', items.keys())
+
+
+def prompt_profile_device(*kargs, **kwargs) -> tuple[str, bool]:
+    return prompt_wrappable('device', get_devices, ['devices'], *kargs, **kwargs)
+
+
+def prompt_profile_flavour(*kargs, **kwargs) -> tuple[str, bool]:
+    return prompt_wrappable('flavour', get_flavours, ['flavours'], *kargs, **kwargs)
 
 
 def config_dot_name_get(name: str, config: dict[str, Any], prefix: str = '') -> Any:
