@@ -39,14 +39,15 @@ class DockerWrapper(Wrapper):
                 tag,
             ] + (['-q'] if not config.runtime.verbose else [])
             logging.debug('Running docker cmd: ' + ' '.join(cmd))
+            mute_docker = not config.runtime.verbose
             result = subprocess.run(
                 cmd,
                 cwd=script_path,
-                stdout=(sys.stdout if config.runtime.verbose else subprocess.PIPE),
-                stderr=(sys.stderr if config.runtime.verbose else subprocess.PIPE),
+                capture_output=mute_docker,
             )
             if result.returncode != 0:
-                logging.fatal('Failed to build docker image:\n' + result.stderr.decode())
+                error_msg = ('\n' + result.stderr.decode() + '\n') if mute_docker else ''
+                logging.fatal(f'Docker error: {error_msg}Failed to build docker image: see errors above: ^^^^')
                 exit(1)
         else:
             # Check if the image for the version already exists
