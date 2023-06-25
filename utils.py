@@ -203,18 +203,41 @@ def color_str(s: str, use_colors: Optional[bool] = None, **kwargs) -> str:
     return s
 
 
+def color_green(s: str, **kwargs):
+    return color_str(s, fg="bright_green", **kwargs)
+
+
+def color_bold(s: str, **kwargs):
+    return color_str(s, bold=True, **kwargs)
+
+
 def color_mark_selected(
     item: str,
-    msg_items: str | tuple,
-    msg_fmt: str = 'Currently selected by profile %s',
+    profile_name: str,
+    inherited_from: Optional[str] = None,
+    msg_fmt: str = 'Currently selected by profile "%s"%s',
+    msg_item_colors: dict[str, Any] = dict(bold=True, fg="bright_green"),
     marker: str = '>>> ',
     marker_config: dict[str, Any] = dict(bold=True, fg="bright_green"),
     split_on: str = '\n',
     suffix: str = '\n\n',
     use_colors: Optional[bool] = None,
 ) -> str:
+
+    def bold(s: str, _bold=True, **kwargs):
+        return color_bold(s, use_colors=use_colors, **kwargs)
+
+    def green(s: str, **kwargs):
+        return color_green(s, use_colors=use_colors, **kwargs)
+
     marker_full = color_str(marker, use_colors=use_colors, **marker_config)
-    if isinstance(msg_items, str):
-        msg_items = (msg_items,)
+
+    msg_items = (color_str(profile_name, use_colors=use_colors, **msg_item_colors),)
+    if inherited_from and inherited_from != profile_name:
+        msg_items = msg_items + (''.join([
+            bold(' (inherited from profile "'),
+            green(inherited_from, bold=True),
+            bold('")'),
+        ]),)  # type: ignore[assignment]
     output = f'{item}{suffix}{msg_fmt % msg_items}'
     return '\n'.join([(marker_full + o) for o in output.split(split_on)])
