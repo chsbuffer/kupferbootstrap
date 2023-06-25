@@ -35,7 +35,7 @@ class Wrapper(WrapperProtocol):
     uuid: str
     identifier: str
     type: str
-    wrapped_config_path: str
+    wrapped_config_path: Optional[str]
     argv_override: Optional[list[str]]
     should_exit: bool
     atexit_registered: bool
@@ -46,6 +46,7 @@ class Wrapper(WrapperProtocol):
         self.argv_override = None
         self.should_exit = True
         self.atexit_registered = False
+        self.wrapped_config_path = None
 
     def filter_args_wrapper(self, args):
         """filter out -c/--config since it doesn't apply in wrapper"""
@@ -89,7 +90,8 @@ class Wrapper(WrapperProtocol):
         return wrapped_config
 
     def at_exit(self):
-        os.remove(self.wrapped_config_path)
+        if self.wrapped_config_path:
+            os.remove(self.wrapped_config_path)
         self.stop()
         self.atexit_registered = False
 
