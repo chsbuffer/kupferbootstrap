@@ -21,6 +21,10 @@ PROFILE_DEFAULTS = Profile.fromDict(PROFILE_DEFAULTS_DICT)
 PROFILE_EMPTY: Profile = {key: None for key in PROFILE_DEFAULTS.keys()}  # type: ignore
 
 
+class ProfileNotFoundException(Exception):
+    pass
+
+
 def resolve_profile(
     name: str,
     sparse_profiles: dict[str, SparseProfile],
@@ -85,3 +89,40 @@ def resolve_profile(
 
     resolved[name] = Profile.fromDict(full)
     return resolved
+
+
+def resolve_profile_attr(
+    profile_name: str,
+    attr_name: str,
+    profiles_sparse: dict[str, SparseProfile],
+) -> tuple[str, str]:
+    """
+    This function tries to resolve a profile attribute recursively,
+    and throws KeyError if the key is not found anywhere in the hierarchy.
+    Throws a ProfileNotFoundException if the profile is not in profiles_sparse
+    """
+    if profile_name not in profiles_sparse:
+        raise ProfileNotFoundException(f"Unknown profile {profile_name}")
+    profile: Profile = profiles_sparse[profile_name]
+    if attr_name in profile:
+        return profile[attr_name], profile_name
+
+    if 'parent' not in profile:
+        raise KeyError(f'Profile attribute {attr_name} not found in {profile_name} and no parents')
+    parent = profile
+    parent_name = profile_name
+    seen = []
+    while True:
+        if attr_name in parent:
+            return parent[attr_name], parent_name
+
+        seen.append(parent_name)
+
+        if not parent.get('parent', None):
+            raise KeyError(f'Profile attribute {attr_name} not found in inheritance chain, '
+                           f'we went down to {parent_name}.')
+        parent_name = parent['parent']
+        if parent_name in seen:
+            raise RecursionError(f"Profile recursion loop: profile {profile_name} couldn't be resolved"
+                                 f"because of a dependency loop:\n{' -> '.join([*seen, parent_name])}")
+        parent = profiles_sparse[parent_name]
