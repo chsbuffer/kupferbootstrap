@@ -5,9 +5,10 @@ from json import dumps as json_dump
 from typing import Optional
 
 from config.state import config
-from utils import colors_supported, color_str
+from config.cli import resolve_profile_field
+from utils import color_mark_selected, colors_supported
 
-from .device import get_devices, get_profile_device
+from .device import get_devices, get_device
 
 
 @click.command(name='devices')
@@ -36,12 +37,14 @@ def cmd_devices(
     if not devices:
         raise Exception("No devices found!")
     profile_device = None
+    profile_name = config.file.profiles.current
+    selected, inherited_from = None, None
     try:
-        dev = get_profile_device()
-        assert dev
-        profile_device = dev
+        selected, inherited_from = resolve_profile_field(None, profile_name, 'device', config.file.profiles)
+        if selected:
+            profile_device = get_device(selected)
     except Exception as ex:
-        logging.debug(f"Failed to get profile device for visual highlighting, not a problem: {ex}")
+        logging.debug(f"Failed to get profile device for marking as currently selected, continuing anyway. Exception: {ex}")
     output = ['']
     json_output = {}
     interactive_json = json and not output_file
@@ -49,8 +52,6 @@ def cmd_devices(
         json = True
     use_colors = colors_supported(False if interactive_json else config.runtime.colors)
     for name in sorted(devices.keys()):
-        prefix = ''
-        suffix = ''
         device = devices[name]
         assert device
         if force_parse_deviceinfo in [None, True]:
@@ -66,14 +67,9 @@ def cmd_devices(
             json_output[name] = device.get_summary().toDict()
             if interactive_json:
                 continue
+        snippet = device.nice_str(colors=use_colors, newlines=True)
         if profile_device and profile_device.name == device.name:
-            prefix = color_str('>>> ', bold=True, fg="bright_green", use_colors=use_colors)
-            suffix = '\n\n'
-            suffix += color_str('Currently selected by profile', bold=True, use_colors=use_colors) + " "
-            suffix += color_str(f'"{config.file.profiles.current}"', bold=True, fg="bright_green", use_colors=use_colors)
-        snippet = f'{device.nice_str(colors=use_colors, newlines=True)}{suffix}'
-        # prefix each line in the snippet
-        snippet = '\n'.join([f'{prefix}{line}' for line in snippet.split('\n')])
+            snippet = color_mark_selected(snippet, profile_name or '[unknown]', inherited_from)
         output.append(f"{snippet}\n")
     if interactive_json:
         output = ['\n' + json_dump(json_output, indent=4)]

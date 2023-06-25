@@ -4,9 +4,9 @@ import logging
 from copy import deepcopy
 from typing import Any, Callable, Iterable, Mapping, Optional, Union
 
-from devices.device import get_devices
+from devices.device import get_devices, sanitize_device_name
 from flavours.flavour import get_flavours
-from utils import color_str, colors_supported, color_mark_selected
+from utils import color_bold, colors_supported, color_mark_selected
 from wrapper import execute_without_exit
 
 from .scheme import Profile
@@ -98,16 +98,24 @@ def prompt_profile(
     changed = False
     for key, current in profile.items():
         current = profile[key]
-        text = f'{name}.{key}'
+        text = f'profiles.{name}.{key}'
         if not no_parse and key in PARSEABLE_FIELDS:
             parse_prompt = None
+            sanitize_func = None
             if key == 'device':
                 parse_prompt = prompt_profile_device
+                sanitize_func = sanitize_device_name
             elif key == 'flavour':
                 parse_prompt = prompt_profile_flavour
             else:
                 raise Exception(f'config: Unhandled parseable field {key}, this is a bug in kupferbootstrap.')
-            result, _changed = parse_prompt(current=current, profile_name=name, sparse_profiles=config.file.profiles)  # type: ignore
+            result, _changed = parse_prompt(
+                current=current,
+                profile_name=name,
+                sparse_profiles=config.file.profiles,
+                use_colors=config.runtime.colors,
+                sanitize_func=sanitize_func,
+            )  # type: ignore
         else:
             result, _changed = prompt_config(text=text, default=current, field_type=type(PROFILE_DEFAULTS[key]))  # type: ignore
         if _changed:
@@ -139,31 +147,23 @@ def prompt_wrappable(
     current: Optional[str],
     profile_name: str,
     sparse_profiles: Mapping[str, SparseProfile],
+    sanitize_func: Optional[Callable[[str], str]] = None,
     use_colors: Optional[bool] = None,
 ) -> tuple[str, bool]:
     use_colors = colors_supported(use_colors)
 
-    def bold(s: str, _bold=True, **kwargs):
-        return color_str(s, use_colors=use_colors, bold=_bold, **kwargs)
-
-    def green(s: str, _bold=True):
-        return bold(s, fg="bright_green", _bold=_bold)
-
-    print(bold(f"Pick your {attr_name}!\nThese are the available choices:"))
+    print(color_bold(f"Pick your {attr_name}!\nThese are the available choices:", use_colors=use_colors))
     items = execute_without_exit(native_cmd, cli_cmd)
-    selected, inherited_from = resolve_profile_field(current, profile_name, attr_name, sparse_profiles)
-    logging.debug(f"Acquired {attr_name=}={selected} from {inherited_from}")
     if items is None:
         logging.warning("(wrapper mode, input for this field will not be checked for correctness)")
-        return prompt_config(text=f'{profile_name}.{attr_name}', default=current)
+        return prompt_config(text=f'profiles.{profile_name}.{attr_name}', default=current)
+    selected, inherited_from = resolve_profile_field(current, profile_name, attr_name, sparse_profiles)
+    if selected and sanitize_func:
+        selected = sanitize_func(selected)
     for key in sorted(items.keys()):
         text = items[key].nice_str(newlines=True, colors=use_colors)
         if key == selected:
-            inherit_suffix = ''
-            if inherited_from not in [None, profile_name]:
-                quote = '"'
-                inherit_suffix = f'{bold(" (inherited from profile "+quote)}{green(inherited_from)}{bold(quote+")")}'
-            text = color_mark_selected(text, f'"{green(profile_name)}"{inherit_suffix}')
+            text = color_mark_selected(text, profile_name, inherited_from)
         print(text + '\n')
     return prompt_choice(current, f'profiles.{profile_name}.{attr_name}', items.keys())
 
