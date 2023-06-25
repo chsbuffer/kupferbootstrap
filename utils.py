@@ -12,7 +12,7 @@ import tarfile
 
 from dateutil.parser import parse as parsedate
 from shutil import which
-from typing import Generator, IO, Optional, Union, Sequence
+from typing import Any, Generator, IO, Optional, Union, Sequence
 
 from exec.cmd import run_cmd, run_root_cmd
 
@@ -201,3 +201,20 @@ def color_str(s: str, use_colors: Optional[bool] = None, **kwargs) -> str:
     if colors_supported(use_colors):
         return click.style(s, **kwargs)
     return s
+
+
+def color_mark_selected(
+    item: str,
+    msg_items: str | tuple,
+    msg_fmt: str = 'Currently selected by profile %s',
+    marker: str = '>>> ',
+    marker_config: dict[str, Any] = dict(bold=True, fg="bright_green"),
+    split_on: str = '\n',
+    suffix: str = '\n\n',
+    use_colors: Optional[bool] = None,
+) -> str:
+    marker_full = color_str(marker, use_colors=use_colors, **marker_config)
+    if isinstance(msg_items, str):
+        msg_items = (msg_items,)
+    output = f'{item}{suffix}{msg_fmt % msg_items}'
+    return '\n'.join([(marker_full + o) for o in output.split(split_on)])
