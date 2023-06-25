@@ -135,6 +135,20 @@ def parse_device_pkg(pkgbuild: Pkgbuild) -> Device:
     return Device(name=name, arch=arch, package=pkgbuild, deviceinfo=None)
 
 
+def sanitize_device_name(name: str, warn: bool = True) -> str:
+    if name not in DEVICE_DEPRECATIONS:
+        return name
+    warning = f"Deprecated device {name}"
+    replacement = DEVICE_DEPRECATIONS[name]
+    if replacement:
+        warning += (f': Device has been renamed to {replacement}! Please adjust your profile config!\n'
+                    'This will become an error in a future version!')
+        name = replacement
+    if warn:
+        logging.warning(warning)
+    return name
+
+
 _device_cache: dict[str, Device] = {}
 _device_cache_populated: bool = False
 
@@ -159,14 +173,7 @@ def get_devices(pkgbuilds: Optional[dict[str, Pkgbuild]] = None, lazy: bool = Tr
 def get_device(name: str, pkgbuilds: Optional[dict[str, Pkgbuild]] = None, lazy: bool = True, scan_all=False) -> Device:
     global _device_cache, _device_cache_populated
     assert lazy or pkgbuilds
-    if name in DEVICE_DEPRECATIONS:
-        warning = f"Deprecated device {name}"
-        replacement = DEVICE_DEPRECATIONS[name]
-        if replacement:
-            warning += (f': Device has been renamed to {replacement}! Please adjust your profile config!\n'
-                        'This will become an error in a future version!')
-            name = replacement
-        logging.warning(warning)
+    name = sanitize_device_name(name)
     if lazy and name in _device_cache:
         return _device_cache[name]
     if scan_all:
