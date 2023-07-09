@@ -232,12 +232,12 @@ def color_mark_selected(
 
     marker_full = color_str(marker, use_colors=use_colors, **marker_config)
 
-    msg_items = (color_str(profile_name, use_colors=use_colors, **msg_item_colors),)
+    msg_items = [color_str(profile_name, use_colors=use_colors, **msg_item_colors), '']
     if inherited_from and inherited_from != profile_name:
-        msg_items = msg_items + (''.join([
+        msg_items[1] = ''.join([
             bold(' (inherited from profile "'),
             green(inherited_from, bold=True),
             bold('")'),
-        ]),)  # type: ignore[assignment]
-    output = f'{item}{suffix}{msg_fmt % msg_items}'
+        ])
+    output = f'{item}{suffix}{msg_fmt % tuple(msg_items)}'
     return '\n'.join([(marker_full + o) for o in output.split(split_on)])
