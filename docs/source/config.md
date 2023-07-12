@@ -64,7 +64,7 @@ current = "graphical"
 
 [profiles.default]
 parent = ""
-device = "oneplus-enchilada"
+device = "sdm845-oneplus-enchilada"
 flavour = "barebone"
 pkgs_include = [ "wget", "rsync", "nano", "tmux", "zsh", "pv", ]
 pkgs_exclude = []
@@ -89,7 +89,7 @@ flavour = "debug-shell"
 
 [profiles.beryllium]
 parent = "graphical"
-device = "xiaomi-beryllium-ebbg"
+device = "sdm845-xiaomi-beryllium-ebbg"
 flavour = "gnome"
 hostname = "pocof1"
 ```
