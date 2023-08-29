@@ -129,7 +129,7 @@ def prompt_choice(current: Optional[Any], key: str, choices: Iterable[Any], allo
     res, _ = prompt_config(text=key, default=current, field_type=click.Choice(choices), show_choices=show_choices)
     if allow_none and res == '':
         res = None
-    return res, res == current
+    return res, res != current
 
 
 def resolve_profile_field(current: Any, *kargs):
