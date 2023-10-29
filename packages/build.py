@@ -290,7 +290,8 @@ def try_download_package(dest_file_path: str, package: Pkgbuild, arch: Arch) -> 
         return None
     repo_pkg: RemotePackage = repo.packages[pkgname]
     if repo_pkg.version != package.version:
-        logging.debug(f"Package {pkgname} versions differ: local: {package.version}, remote: {repo_pkg.version}. Building instead.")
+        logging.debug(f"Package {pkgname} versions differ: local: {package.version}, "
+                      f"remote: {repo_pkg.version}. Building instead.")
         return None
     if repo_pkg.filename != filename:
         versions_str = f"local: {filename}, remote: {repo_pkg.filename}"
@@ -298,6 +299,19 @@ def try_download_package(dest_file_path: str, package: Pkgbuild, arch: Arch) -> 
             logging.debug(f"package filenames don't match: {versions_str}")
             return None
         logging.debug(f"ignoring compression extension difference: {versions_str}")
+    cache_file = os.path.join(config.get_path('pacman'), arch, repo_pkg.filename)
+    if os.path.exists(cache_file):
+        if not repo_pkg._desc or 'SHA256SUM' not in repo_pkg._desc:
+            cache_matches = False
+            extra_msg = ". However, we can't validate it, as the https repo doesnt provide a SHA256SUM for it."
+        else:
+            cache_matches = sha256sum(cache_file) == repo_pkg._desc['SHA256SUM']
+            extra_msg = (". However its checksum doesn't match." if not cache_matches else " and its checksum matches.")
+        logging.debug(f"While checking the HTTPS repo DB, we found a matching filename in the pacman cache{extra_msg}")
+        if cache_matches:
+            logging.info(f'copying cache file {cache_file} to repo as verified by remote checksum')
+            shutil.move(cache_file, dest_file_path)
+            return dest_file_path
     url = repo_pkg.resolved_url
     assert url
     try:
