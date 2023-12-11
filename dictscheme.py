@@ -52,7 +52,7 @@ class DictScheme(Munch):
     _sparse: ClassVar[bool] = False
 
     def __init__(self, d: Mapping = {}, validate: bool = True, **kwargs):
-        self.update(d | kwargs, validate=validate)
+        self.update(dict(d) | kwargs, validate=validate)
 
     @classmethod
     def transform(
@@ -269,10 +269,13 @@ class DictScheme(Munch):
     ) -> str:
         import yaml
         yaml_args = {'sort_keys': False} | yaml_args
-        return yaml.dump(
+        dumped = yaml.dump(
             self.toDict(strip_hidden=strip_hidden, sparse=sparse),
             **yaml_args,
         )
+        if dumped is None:
+            raise Exception(f"Failed to yaml-serialse {self}")
+        return dumped
 
     def toToml(
             self,
