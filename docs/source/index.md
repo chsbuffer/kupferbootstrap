@@ -6,7 +6,6 @@ a tool to build and flash packages and images for the [Kupfer](https://gitlab.co
 ## Documentation pages
 
 ```{toctree}
-install
-config
+usage/index
 cli
 ```
