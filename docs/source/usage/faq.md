@@ -19,7 +19,7 @@ See [Porting](../porting)
 
 ## How to build a specific package
 
-See also: The full [`kupferbootstrap packages build` docs](/cli/packages#kupferbootstrap-packages-build)
+See also: The full [`kupferbootstrap packages build` docs](../../cli/packages#kupferbootstrap-packages-build)
 
 ### Example
 

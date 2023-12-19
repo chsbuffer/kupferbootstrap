@@ -2,9 +2,13 @@
 
 Kupferbootstrap uses [toml](https://en.wikipedia.org/wiki/TOML) for its configuration file.
 
-The file can either be edited manually or managed via the {doc}`../cli/config` subcommand.
+The file can either be edited manually or managed via the [`kupferbootstrap config`](../../cli/config) subcommand.
 
+```{hint}
 You can quickly generate a default config by running {code}`kupferbootstrap config init -N`.
+
+For an interactive dialogue, omit the `-N`.
+```
 
 ## File Location
 
@@ -54,7 +58,7 @@ This allows you to easily keep a number of slight variations of the same target 
 without the need to constantly modify your Kupferbootstrap configuration file.
 
 You can easily create new profiles with
-[kupferbootstrap config profile init](/cli/config/#kupferbootstrap-config-profile-init).
+[kupferbootstrap config profile init](../../cli/config/#kupferbootstrap-config-profile-init).
 
 Here's an example:
 
@@ -97,7 +101,7 @@ hostname = "pocof1"
 The `current` key in the `profiles` section controlls which profile gets used by Kupferbootstrap by default.
 
 The first subsection (`profiles.default`) describes the `default` profile
-which gets created by [config init](/cli/config/#kupferbootstrap-config-init).
+which gets created by [`kupferbootstrap config init`](../../cli/config/#kupferbootstrap-config-init).
 
 Next, we have a `graphical` profile that defines a couple of graphical programs for all but the `recovery` profile,
 since that doesn't have a GUI.
