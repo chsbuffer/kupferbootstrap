@@ -89,7 +89,7 @@ COMPILE_ARCHES: dict[Arch, str] = {
 GCC_HOSTSPECS: dict[DistroArch, dict[TargetArch, str]] = {
     'x86_64': {
         'x86_64': 'x86_64-pc-linux-gnu',
-        'aarch64': 'aarch64-linux-gnu',
+        'aarch64': 'aarch64-unknown-linux-gnu',
         'armv7h': 'arm-unknown-linux-gnueabihf'
     },
     'aarch64': {
