@@ -438,10 +438,11 @@ def setup_build_chroot(
     extra_packages: list[str] = [],
     add_kupfer_repos: bool = True,
     clean_chroot: bool = False,
+    repo: Optional[dict[str, Pkgbuild]] = None,
 ) -> BuildChroot:
     assert config.runtime.arch
     if arch != config.runtime.arch:
-        build_enable_qemu_binfmt(arch, lazy=False)
+        build_enable_qemu_binfmt(arch, repo=repo or discover_pkgbuilds(), lazy=False)
     init_prebuilts(arch)
     chroot = get_build_chroot(arch, add_kupfer_repos=add_kupfer_repos)
     chroot.mount_packages()
@@ -510,6 +511,7 @@ def build_package(
     enable_ccache: bool = True,
     clean_chroot: bool = False,
     build_user: str = 'kupfer',
+    repo: Optional[dict[str, Pkgbuild]] = None,
 ):
     makepkg_compile_opts = ['--holdver']
     makepkg_conf_path = 'etc/makepkg.conf'
@@ -529,6 +531,7 @@ def build_package(
         arch=arch,
         extra_packages=deps,
         clean_chroot=clean_chroot,
+        repo=repo,
     )
     assert config.runtime.arch
     native_chroot = target_chroot
@@ -538,6 +541,7 @@ def build_package(
             arch=config.runtime.arch,
             extra_packages=['base-devel'] + CROSSDIRECT_PKGS,
             clean_chroot=clean_chroot,
+            repo=repo,
         )
     if not package.mode:
         logging.warning(f'Package {package.path} has no _mode set, assuming "host"')
@@ -756,6 +760,7 @@ def build_packages(
                 enable_crossdirect=enable_crossdirect,
                 enable_ccache=enable_ccache,
                 clean_chroot=clean_chroot,
+                repo=repo,
             )
             files += add_package_to_repo(package, arch)
             updated_repos.add(package.repo)
@@ -830,8 +835,20 @@ def build_enable_qemu_binfmt(arch: Arch, repo: Optional[dict[str, Pkgbuild]] = N
     logging.info('Installing qemu-user (building if necessary)')
     check_programs_wrap(['pacman', 'makepkg', 'pacstrap'])
     # build qemu-user, binfmt, crossdirect
+    packages = list(CROSSDIRECT_PKGS)
+    hostspec = GCC_HOSTSPECS[arch][arch]
+    cross_gcc = f"{hostspec}-gcc"
+    if repo:
+        for pkg in repo.values():
+            if (pkg.name == cross_gcc or cross_gcc in pkg.provides):
+                if config.runtime.arch not in pkg.arches:
+                    logging.debug(f"Package {pkg.path} matches {cross_gcc=} name but not arch: {pkg.arches=}")
+                    continue
+                packages.append(pkg.path)
+                logging.debug(f"Adding gcc package {pkg.path} to the  necessary crosscompilation tools")
+                break
     build_packages_by_paths(
-        CROSSDIRECT_PKGS,
+        packages,
         native,
         repo=repo,
         try_download=True,
