@@ -82,6 +82,7 @@ class BuildChroot(Chroot):
         native_chroot.mount_pacman_cache()
         native_chroot.mount_packages()
         native_chroot.activate()
+        logging.debug(f"Installing {CROSSDIRECT_PKGS=} + {gcc=}")
         results = dict(native_chroot.try_install_packages(
             CROSSDIRECT_PKGS + [gcc],
             refresh=True,
@@ -103,8 +104,8 @@ class BuildChroot(Chroot):
         target_include_dir = os.path.join(self.path, 'include')
 
         for target, source in {cc_path: gcc, target_lib_dir: 'lib', target_include_dir: 'usr/include'}.items():
-            if not os.path.exists(target):
-                logging.debug(f'Symlinking {source} at {target}')
+            if not (os.path.exists(target) or os.path.islink(target)):
+                logging.debug(f'Symlinking {source=} at {target=}')
                 symlink(source, target)
         ld_so = os.path.basename(glob(f"{os.path.join(native_chroot.path, 'usr', 'lib', 'ld-linux-')}*")[0])
         ld_so_target = os.path.join(target_lib_dir, ld_so)
