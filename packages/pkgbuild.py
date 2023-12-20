@@ -310,8 +310,11 @@ class SubPkgbuild(Pkgbuild):
         self.sources_refreshed = False
         self.update(pkgbase)
 
-        self.provides = {}
-        self.replaces = []
+        # set to None - will be replaced with base_pkg if still None after parsing
+        self.depends = None  # type: ignore[assignment]
+        self.makedepends = None  # type: ignore[assignment]
+        self.provides = None  # type: ignore[assignment]
+        self.replaces = None  # type: ignore[assignment]
 
     def refresh_sources(self, lazy: bool = True):
         assert self.pkgbase
@@ -383,13 +386,21 @@ def parse_pkgbuild(
         elif line.startswith('arch'):
             current.arches.append(splits[1])
         elif line.startswith('provides'):
+            if not current.provides:
+                current.provides = {}
             current.provides = get_version_specs(splits[1], current.provides)
         elif line.startswith('replaces'):
+            if not current.replaces:
+                current.replaces = []
             current.replaces.append(splits[1])
         elif splits[0] in ['depends', 'makedepends', 'checkdepends', 'optdepends']:
             spec = splits[1].split(': ', 1)[0]
+            if not current.depends:
+                current.depends = {}
             current.depends = get_version_specs(spec, current.depends)
             if splits[0] == 'makedepends':
+                if not current.makedepends:
+                    current.makedepends = {}
                 current.makedepends = get_version_specs(spec, current.makedepends)
 
     results: list[Pkgbuild] = list(base_package.subpackages)
@@ -402,6 +413,15 @@ def parse_pkgbuild(
         pkg.update_version()
         if not (pkg.version == base_package.version):
             raise Exception(f'Subpackage malformed! Versions differ! base: {base_package}, subpackage: {pkg}')
+        if isinstance(pkg, SubPkgbuild):
+            if pkg.depends is None:
+                pkg.depends = base_package.depends
+            if pkg.makedepends is None:
+                pkg.makedepends = base_package.makedepends
+            if pkg.replaces is None:
+                pkg.replaces = base_package.replaces
+            if pkg.provides is None:
+                pkg.provides = base_package.provides
     return results
 
 
