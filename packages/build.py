@@ -310,7 +310,8 @@ def try_download_package(dest_file_path: str, package: Pkgbuild, arch: Arch) -> 
         logging.debug(f"While checking the HTTPS repo DB, we found a matching filename in the pacman cache{extra_msg}")
         if cache_matches:
             logging.info(f'copying cache file {cache_file} to repo as verified by remote checksum')
-            shutil.move(cache_file, dest_file_path)
+            shutil.copy(cache_file, dest_file_path)
+            remove_file(cache_file)
             return dest_file_path
     url = repo_pkg.resolved_url
     assert url
