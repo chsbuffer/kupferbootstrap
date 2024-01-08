@@ -37,6 +37,11 @@ def ctx() -> click.Context:
     return click.Context(click.Command('integration_tests'))
 
 
+def test_main_import():
+    from main import cli
+    assert cli
+
+
 def test_config_load(ctx: click.Context):
     path = config.runtime.config_file
     assert path
