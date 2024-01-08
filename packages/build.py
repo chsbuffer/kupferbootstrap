@@ -575,7 +575,7 @@ def build_package(
         build_root = target_chroot
         makepkg_compile_opts += ['--nodeps' if package.nodeps else '--syncdeps']
         env = deepcopy(get_makepkg_env(arch))
-        if foreign_arch and enable_crossdirect and package.name not in CROSSDIRECT_PKGS:
+        if foreign_arch and package.crossdirect and enable_crossdirect and package.name not in CROSSDIRECT_PKGS:
             env['PATH'] = f"/native/usr/lib/crossdirect/{arch}:{env['PATH']}"
             target_chroot.mount_crossdirect(native_chroot)
         else:

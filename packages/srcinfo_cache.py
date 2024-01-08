@@ -68,11 +68,19 @@ class SrcInitialisedFile(JsonFile):
                 raise ex
 
 
+srcinfo_meta_defaults = {
+    'build_mode': None,
+    "build_nodeps": None,
+    "build_crossdirect": None,
+}
+
+
 class SrcinfoMetaFile(JsonFile):
 
     checksums: dict[str, str]
     build_mode: Optional[str]
     build_nodeps: Optional[bool]
+    build_crossdirect: Optional[bool]
 
     _changed: bool
     _filename: ClassVar[str] = SRCINFO_METADATA_FILE
@@ -92,9 +100,8 @@ class SrcinfoMetaFile(JsonFile):
         s = SrcinfoMetaFile({
             '_relative_path': relative_pkg_dir,
             '_changed': True,
-            'build_mode': '',
-            'build_nodeps': None,
             'checksums': {},
+            **srcinfo_meta_defaults,
         })
         return s, s.refresh_all()
 
@@ -120,9 +127,11 @@ class SrcinfoMetaFile(JsonFile):
         if not force_refresh:
             logging.debug(f'{metadata._relative_path}: srcinfo checksums match!')
             lines = lines or metadata.read_srcinfo_file()
-            for build_field in ['build_mode', 'build_nodeps']:
+            for build_field in srcinfo_meta_defaults.keys():
                 if build_field not in metadata:
                     metadata.refresh_build_fields()
+                    if write:
+                        metadata.write()
                     break
         else:
             lines = metadata.refresh_all(write=write)
@@ -143,8 +152,7 @@ class SrcinfoMetaFile(JsonFile):
             self._changed = True
 
     def refresh_build_fields(self):
-        self['build_mode'] = None
-        self['build_nodeps'] = None
+        self.update(srcinfo_meta_defaults)
         with open(os.path.join(config.get_path('pkgbuilds'), self._relative_path, 'PKGBUILD'), 'r') as file:
             lines = file.read().split('\n')
         for line in lines:
@@ -156,6 +164,8 @@ class SrcinfoMetaFile(JsonFile):
                 self.build_mode = val
             elif key == '_nodeps':
                 self.build_nodeps = val.lower() == 'true'
+            elif key == '_crossdirect':
+                self.build_crossdirect = val.lower() == 'true'
             else:
                 continue
 

@@ -156,6 +156,7 @@ class Pkgbuild(PackageInfo):
     repo: str
     mode: str
     nodeps: bool
+    crossdirect: bool
     path: str
     pkgver: str
     pkgrel: str
@@ -190,6 +191,7 @@ class Pkgbuild(PackageInfo):
         self.repo = repo or ''
         self.mode = ''
         self.nodeps = False
+        self.crossdirect = True
         self.path = relative_path
         self.pkgver = ''
         self.pkgrel = ''
@@ -223,6 +225,7 @@ class Pkgbuild(PackageInfo):
         self.repo = pkg.repo
         self.mode = pkg.mode
         self.nodeps = pkg.nodeps
+        self.crossdirect = pkg.crossdirect
         self.path = pkg.path
         self.pkgver = pkg.pkgver
         self.pkgrel = pkg.pkgrel
@@ -357,7 +360,11 @@ def parse_pkgbuild(
         else:
             raise Exception(msg)
 
+    # if _crossdirect is unset (None), it defaults to True
+    crossdirect_enabled = srcinfo_cache.build_crossdirect in (None, True)
+
     base_package = Pkgbase(relative_pkg_dir, sources_refreshed=sources_refreshed, srcinfo_cache=srcinfo_cache)
+    base_package.crossdirect = crossdirect_enabled
     base_package.mode = mode
     base_package.nodeps = nodeps
     base_package.repo = relative_pkg_dir.split('/')[0]

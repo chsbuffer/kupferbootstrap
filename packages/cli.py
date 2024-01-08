@@ -313,7 +313,7 @@ def cmd_list():
     logging.info(f'Done! {len(packages)} Pkgbuilds:')
     for name in sorted(packages.keys()):
         p = packages[name]
-        print(f'name: {p.name}; ver: {p.version}; mode: {p.mode}; provides: {p.provides}; replaces: {p.replaces};'
+        print(f'name: {p.name}; ver: {p.version}; mode: {p.mode}; crossdirect: {p.crossdirect} provides: {p.provides}; replaces: {p.replaces};'
               f'local_depends: {p.local_depends}; depends: {p.depends}')
 
 
@@ -346,6 +346,7 @@ def cmd_check(paths):
 
         mode_key = '_mode'
         nodeps_key = '_nodeps'
+        crossdirect_key = '_crossdirect'
         pkgbase_key = 'pkgbase'
         pkgname_key = 'pkgname'
         arches_key = '_arches'
@@ -356,6 +357,7 @@ def cmd_check(paths):
         required = {
             mode_key: True,
             nodeps_key: False,
+            crossdirect_key: False,
             pkgbase_key: False,
             pkgname_key: True,
             'pkgdesc': False,
