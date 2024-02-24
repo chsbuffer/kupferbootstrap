@@ -52,7 +52,8 @@ def test_config_load(ctx: click.Context):
 
 def test_packages_update(ctx: click.Context):
     pkgbuilds_path = config.get_path('pkgbuilds')
-    kbs_branch = git_get_branch(config.runtime.script_source_dir)
+    assert config.runtime.script_source_dir
+    kbs_branch = git_get_branch(os.path.join(config.runtime.script_source_dir, "../.."))
     # Gitlab CI integration: the CI checks out a detached commit, branch comes back empty.
     if not kbs_branch and os.environ.get('CI', 'false') == 'true':
         kbs_branch = os.environ.get('CI_COMMIT_BRANCH', '')
