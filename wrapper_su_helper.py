@@ -1,14 +1,14 @@
-#!/bin/python3
+#!/usr/bin/env python3
 
 import click
 import pwd
 import os
 
-from logger import logging, setup_logging
+from kupferbootstrap.logger import logging, setup_logging
 
-from constants import WRAPPER_ENV_VAR
-from exec.cmd import run_cmd, flatten_shell_script
-from exec.file import chown
+from kupferbootstrap.constants import WRAPPER_ENV_VAR
+from kupferbootstrap.exec.cmd import run_cmd, flatten_shell_script
+from kupferbootstrap.exec.file import chown
 
 
 @click.command('kupferbootstrap_su')

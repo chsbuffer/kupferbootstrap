@@ -9,6 +9,8 @@ from kupferbootstrap.exec.file import makedir
 
 from .wrapper import Wrapper, WRAPPER_PATHS
 
+VERSION_FILE = "docker_version.txt"
+DOCKER_FILE = "Dockerfile"
 DOCKER_PATHS = WRAPPER_PATHS.copy()
 
 
@@ -26,10 +28,39 @@ class DockerWrapper(Wrapper):
         super().wrap()
         script_path = config.runtime.script_source_dir
         assert script_path
-        with open(os.path.join(script_path, 'version.txt')) as version_file:
-            version = version_file.read().replace('\n', '')
+        docker_path = script_path
+        tried = [docker_path]
+        if not os.path.exists(os.path.join(docker_path, DOCKER_FILE)):
+            docker_path = os.path.realpath(os.path.join(script_path, "../.."))
+            tried.append(docker_path)
+        if not os.path.exists(os.path.join(docker_path, DOCKER_FILE)):
+            _par_dir = os.path.dirname(script_path)
+            # handle venv
+            if os.path.basename(_par_dir) == "site-packages":
+                _path = os.path.join(_par_dir, "../../../..")
+                docker_path = os.path.realpath(_path)
+                tried.append(f"{_path} => {docker_path}")
+                logging.debug(f"{DOCKER_FILE!r} not found at {script_path!r}, trying {docker_path!r}")
+        version_file = os.path.join(script_path, '../..', VERSION_FILE)
+        if not os.path.exists(version_file):
+            _vfile = os.path.join(docker_path, VERSION_FILE)
+            logging.warning(f"{VERSION_FILE} not found at {version_file!r}."
+                            f"\nTrying {_vfile!r}"
+                            "\nDid you use `pip install .` instead of `pip install -e .`?")
+            if os.path.exists(_vfile):
+                version_file = _vfile
+        if os.path.exists(version_file):
+            with open(version_file) as fd:
+                version = fd.read().replace('\n', '').strip()
+            logging.debug(f"Read docker tag {version} from {version_file}")
+        else:
+            version = "BUILD"
+            logging.error(f"'{script_path}/{VERSION_FILE}' doesn't exist, defaulting docker tag to {version}!"
+                          "\nThis installation is potentially broken!"
+                          "\nDid you use `pip install .` instead of `pip install -e .` to install kupferboostrap?"
+                          f"Tried locations: {[version_file, _vfile]}")
         tag = f'registry.gitlab.com/kupfer/kupferbootstrap:{version}'
-        if version == 'dev':
+        if version == 'BUILD':
             logging.info(f'Building docker image "{tag}"')
             cmd = [
                 'docker',
@@ -38,11 +69,15 @@ class DockerWrapper(Wrapper):
                 '-t',
                 tag,
             ] + (['-q'] if not config.runtime.verbose else [])
-            logging.debug('Running docker cmd: ' + ' '.join(cmd))
+            _dfile = os.path.join(docker_path, DOCKER_FILE)
+            if not os.path.exists(_dfile):
+                _sep = "\n -"
+                raise Exception(f'{DOCKER_FILE!r} not found. Tried locations:' + (_sep.join(["", *[repr(f"{p}/{DOCKER_FILE}") for p in tried]])))
+            logging.debug(f'Running docker cmd (chdir={script_path!r}) : ' + ' '.join(cmd))
             mute_docker = not config.runtime.verbose
             result = subprocess.run(
                 cmd,
-                cwd=script_path,
+                cwd=docker_path,
                 capture_output=mute_docker,
             )
             if result.returncode != 0:
