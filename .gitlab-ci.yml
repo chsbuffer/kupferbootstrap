@@ -57,6 +57,7 @@ build_docker:
     DOCKER_TLS_CERTDIR: ""
   script:
     - 'docker build --pull -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}" .'
+    - 'echo "running sanity check" && docker run -t --rm "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" kupferbootstrap --help'
   only:
     - branches
   except:
