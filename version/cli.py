@@ -1,8 +1,8 @@
 import click
 import logging
 
-from constants import REPOS_CONFIG_FILE
-from distro.repo_config import get_repo_config
+from kupferbootstrap.constants import REPOS_CONFIG_FILE
+from kupferbootstrap.distro.repo_config import get_repo_config
 from .kbs import get_kbs_version, compare_kbs_version, compare_kbs_ci_version
 
 

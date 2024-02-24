@@ -5,13 +5,13 @@ import pytest
 from glob import glob
 from subprocess import CompletedProcess
 
-from config.state import config, CONFIG_DEFAULTS
-from constants import SRCINFO_METADATA_FILE
-from exec.cmd import run_cmd
-from exec.file import get_temp_dir
-from logger import setup_logging
-from packages.cli import SRCINFO_CACHE_FILES, cmd_build, cmd_clean, cmd_init, cmd_update
-from utils import git_get_branch
+from kupferbootstrap.config.state import config, CONFIG_DEFAULTS
+from kupferbootstrap.constants import SRCINFO_METADATA_FILE
+from kupferbootstrap.exec.cmd import run_cmd
+from kupferbootstrap.exec.file import get_temp_dir
+from kupferbootstrap.logger import setup_logging
+from kupferbootstrap.packages.cli import SRCINFO_CACHE_FILES, cmd_build, cmd_clean, cmd_init, cmd_update
+from kupferbootstrap.utils import git_get_branch
 
 tempdir = None
 config.try_load_file()

@@ -6,7 +6,7 @@ autoflake_args=('--recursive' '--remove-unused-variables' '--remove-all-unused-i
 format() {
     files=("$@")
     if [[ -z "${files[*]}" ]]; then
-        files=(".")
+        files=(*.py "src")
     fi
 
     yapf "${yapf_args[@]}"  "${files[@]}"

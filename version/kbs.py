@@ -2,10 +2,10 @@ import logging
 import os
 
 from typing import Union
-from utils import git
 
+from kupferbootstrap.distro.repo_config import ReposConfigFile
+from kupferbootstrap.utils import git
 from .compare import semver_compare, VerComp
-from distro.repo_config import ReposConfigFile
 
 KBS_VERSION: Union[str, None] = None
 
@@ -17,7 +17,7 @@ def get_kbs_version(kbs_folder: Union[str, None] = None) -> Union[str, None]:
     if KBS_VERSION:
         return KBS_VERSION
     if not kbs_folder:
-        kbs_folder = os.path.join(os.path.dirname(__file__), "..")
+        kbs_folder = os.path.join(os.path.dirname(__file__), "../" * 3)
     try:
         res = git(
             ['describe', '--tags', '--match', 'v*.*.*'],
