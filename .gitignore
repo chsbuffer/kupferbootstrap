@@ -1,5 +1,8 @@
 *.kate-swp
-venv/
+/venv
+/build
 __pycache__/
 .coverage*
 *.xml
+*.egg-info
+dist
