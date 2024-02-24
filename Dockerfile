@@ -17,12 +17,12 @@ RUN yes | pacman -Scc
 RUN sed -i "s/SigLevel.*/SigLevel = Never/g" /etc/pacman.conf
 
 ENV KUPFERBOOTSTRAP_WRAPPED=DOCKER
-ENV PATH=/app/bin:/app/local/bin:$PATH
+ENV PATH=/app/bin:/app/venv/bin:$PATH
 WORKDIR /app
 
 COPY requirements.txt .
-# TODO: pip packaging so we don't need --break-system-packages
-RUN pip install -r requirements.txt --break-system-packages
+RUN python3 -m venv venv
+RUN venv/bin/pip3 install -r requirements.txt
 
 COPY . .
 
