@@ -7,15 +7,19 @@ format:
   stage: check
   image: python
   before_script:
-    - pip install yapf autoflake --break-system-packages
+    - python3 -m venv venv
+    - venv/bin/pip3 install yapf autoflake
   script:
+    - source venv/bin/activate
     - ./format.sh --check
 
 typecheck:
   stage: check
   image: python
   before_script:
-    - pip install mypy --break-system-packages
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -e '.[dev]'
   script:
     - ./typecheck.sh --non-interactive --junit-xml mypy-report.xml
   artifacts:
@@ -27,13 +31,14 @@ pytest:
   image: archlinux
   before_script:
     - pacman -Sy --noconfirm --needed archlinux-keyring && pacman -Su --noconfirm python python-pip sudo git base-devel arch-install-scripts rsync
-    - pip install -r test_requirements.txt -r requirements.txt --break-system-packages
+    - python3 -m venv venv
+    - venv/bin/pip3 install -r test_requirements.txt -r requirements.txt
     - 'echo "kupfer ALL = (ALL) NOPASSWD: ALL" > /etc/sudoers.d/kupfer_all'
     - useradd -m kupfer
     - chmod 777 .
     - usermod --unlock --expiredate="" nobody
   script:
-    - script -e -c 'su kupfer -s /bin/bash -c "INTEGRATION_TESTS_USE_GLOBAL_CONFIG=TRUE KUPFERBOOTSTRAP_WRAPPED=DOCKER ./pytest.sh --junit-xml=pytest-report.xml --cov-report=xml:coverage.xml integration_tests.py"'
+    - script -e -c 'su kupfer -s /bin/bash -c ". venv/bin/activate && INTEGRATION_TESTS_USE_GLOBAL_CONFIG=TRUE KUPFERBOOTSTRAP_WRAPPED=DOCKER ./pytest.sh --junit-xml=pytest-report.xml --cov-report=xml:coverage.xml integration_tests.py"'
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -78,7 +83,9 @@ push_docker:
     DOCS_MAKE_TARGET: "html"
     DOCS_MAKE_THREADS: 6
   before_script: &docs_before_script
-    - pip install -r requirements.txt -r docs/requirements.txt --break-system-packages
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt -r docs/requirements.txt
   script: &docs_script
     - make -C docs -j$DOCS_MAKE_THREADS SPHINXARGS="$DOCS_SPHINXARGS" $DOCS_MAKE_TARGET
     - mv "docs/$DOCS_MAKE_TARGET" public
