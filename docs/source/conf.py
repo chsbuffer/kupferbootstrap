@@ -1,10 +1,14 @@
+import logging
 import os
-import sys
+from sphinx.config import getenv
+from kupferbootstrap.utils import git
 
-sys.path.insert(0, os.path.abspath('../..'))
+#sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'sphinx_click',
-    'sphinx.ext.autosummary',  # Create neat summary tables
+    "sphinx.ext.autodoc",
+    'sphinx.ext.autosummary',
+    "sphinx.ext.linkcode",
     'myst_parser'
 ]
 myst_all_links_external = True
@@ -29,4 +33,45 @@ html_theme_options = {
         "color-brand-content": "#eba38d",
         "color-problematic": "#ff7564",
     },
+    "source_repository": "https://gitlab.com/kupfer/kupferbootstrap",
+    "source_directory": "docs/source/",
 }
+
+
+autosummary_generate = True
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+    "inherited-members": True,
+}
+autodoc_preserve_defaults = True
+
+
+def get_version():
+    try:
+        res = git(
+            ["rev-parse", "HEAD"],
+            dir=os.path.join(os.path.dirname(__file__), "../.."),
+            use_git_dir=True,
+            capture_output=True,
+        )
+        res.check_returncode()
+        ver = res.stdout.decode().strip()
+        logging.info(f"Detected git {ver=}")
+        return ver
+    except Exception as ex:
+        logging.warning("Couldn't get git branch:", exc_info=ex)
+        return "HEAD"
+
+
+version = getenv("version") or get_version()
+
+
+def linkcode_resolve(domain, info):
+    if domain != 'py':
+        return None
+    if not info['module']:
+        return None
+    filename = info['module'].replace('.', '/')
+    return "%s/-/blob/%s/src/%s.py" % (html_theme_options["source_repository"], version, filename)

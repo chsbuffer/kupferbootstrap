@@ -2,6 +2,7 @@
 .doctrees
 html
 source/cli
+source/code
 checkouts
 versions
 archived

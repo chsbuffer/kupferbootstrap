@@ -1,7 +1,7 @@
 # CLI Interface
 
 ```{eval-rst}
-.. click:: main:cli
+.. click:: kupferbootstrap.main:cli
    :nested: none
    :prog: kupferbootstrap
 

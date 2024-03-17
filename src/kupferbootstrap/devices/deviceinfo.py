@@ -205,15 +205,12 @@ def parse_kernel_suffix(deviceinfo: dict[str, Optional[str]], kernel: str = 'mai
     https://wiki.postmarketos.org/wiki/Device_specific_package#Multiple_kernels
 
     :param info: deviceinfo dict, e.g.:
-                 {"a": "first",
-                  "b_mainline": "second",
-                  "b_downstream": "third"}
+        {"a": "first", "b_mainline": "second", "b_downstream": "third"}
     :param device: which device info belongs to
     :param kernel: which kernel suffix to remove (e.g. "mainline")
     :returns: info, but with the configured kernel suffix removed, e.g:
-              {"a": "first",
-               "b": "second",
-               "b_downstream": "third"}
+        {"a": "first", "b": "second", "b_downstream": "third"}
+
     """
     # Do nothing if the configured kernel isn't available in the kernel (e.g.
     # after switching from device with multiple kernels to device with only one

@@ -8,4 +8,6 @@ a tool to build and flash packages and images for the [Kupfer](https://gitlab.co
 ```{toctree}
 usage/index
 cli
+code
+genindex
 ```

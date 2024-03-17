@@ -14,7 +14,7 @@ cleanbuild:
 	@$(MAKE) html
 
 clean:
-	rm -rf html source/cli .buildinfo .doctrees versions checkouts
+	rm -rf html source/cli source/code .buildinfo .doctrees versions checkouts
 
 html:
 	sphinx-build $(SPHINXARGS) $(buildargs) html

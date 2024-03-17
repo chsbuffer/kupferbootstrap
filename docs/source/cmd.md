@@ -6,6 +6,7 @@ orphan: true
 only used to trigger builds of the submodule docs!
 
 ```{eval-rst}
+.. currentmodule:: kupferbootstrap
 .. autosummary::
    :toctree: cli
    :template: command.rst
