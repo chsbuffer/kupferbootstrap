@@ -85,7 +85,7 @@ def find_ssh_keys():
     return keys
 
 
-def copy_ssh_keys(chroot: Chroot, user: str):
+def copy_ssh_keys(chroot: Chroot, user: str, allow_fail: bool = False):
     check_programs_wrap(['ssh-keygen'])
     ssh_dir_relative = os.path.join('/home', user, '.ssh')
     ssh_dir = chroot.get_path(ssh_dir_relative)
@@ -134,7 +134,13 @@ def copy_ssh_keys(chroot: Chroot, user: str):
             continue
 
     if not os.path.exists(ssh_dir):
-        logging.info(f"Creating {ssh_dir_relative} dir in chroot {chroot.path}")
+        logging.info(f"Creating {ssh_dir_relative!r} dir in chroot {chroot.path!r}")
         chroot.run_cmd(["mkdir", "-p", "-m", "700", ssh_dir_relative], switch_user=user)
     logging.info(f"Writing SSH pub keys to {authorized_keys_file}")
-    write_file(authorized_keys_file, "\n".join(auth_key_lines), user=chroot.get_uid(user), mode="644")
+    try:
+        write_file(authorized_keys_file, "\n".join(auth_key_lines), user=str(chroot.get_uid(user)), mode="644")
+    except Exception as ex:
+        logging.error(f"Failed to write SSH authorized_keys_file at {authorized_keys_file!r}:", exc_info=ex)
+        if allow_fail:
+            return
+        raise ex from ex

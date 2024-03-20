@@ -335,6 +335,7 @@ def install_rootfs(
     copy_ssh_keys(
         chroot,
         user=user,
+        allow_fail=True,
     )
     files = {
         'etc/pacman.conf': get_base_distro(arch).get_pacman_conf(
