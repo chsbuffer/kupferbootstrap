@@ -333,7 +333,7 @@ def install_rootfs(
     )
     chroot.add_sudo_config(config_name='wheel', privilegee='%wheel', password_required=True)
     copy_ssh_keys(
-        chroot.path,
+        chroot,
         user=user,
     )
     files = {

@@ -6,7 +6,9 @@ import click
 
 from config.state import config
 from constants import SSH_COMMON_OPTIONS, SSH_DEFAULT_HOST, SSH_DEFAULT_PORT
+from chroot.abstract import Chroot
 from exec.cmd import run_cmd
+from exec.file import write_file
 from wrapper import check_programs_wrap
 
 
@@ -83,21 +85,16 @@ def find_ssh_keys():
     return keys
 
 
-def copy_ssh_keys(root_dir: str, user: str):
+def copy_ssh_keys(chroot: Chroot, user: str):
     check_programs_wrap(['ssh-keygen'])
-    authorized_keys_file = os.path.join(
-        root_dir,
-        'home',
-        user,
-        '.ssh',
-        'authorized_keys',
-    )
-    if os.path.exists(authorized_keys_file):
-        os.unlink(authorized_keys_file)
+    ssh_dir_relative = os.path.join('/home', user, '.ssh')
+    ssh_dir = chroot.get_path(ssh_dir_relative)
+    authorized_keys_file_rel = os.path.join(ssh_dir_relative, 'authorized_keys')
+    authorized_keys_file = chroot.get_path(authorized_keys_file_rel)
 
     keys = find_ssh_keys()
     if len(keys) == 0:
-        logging.info("Could not find any ssh key to copy")
+        logging.warning("Could not find any ssh key to copy")
         create = click.confirm("Do you want me to generate an ssh key for you?", True)
         if not create:
             return
@@ -116,15 +113,28 @@ def copy_ssh_keys(root_dir: str, user: str):
             logging.fatal("Failed to generate ssh key")
         keys = find_ssh_keys()
 
-    ssh_dir = os.path.join(root_dir, 'home', user, '.ssh')
-    if not os.path.exists(ssh_dir):
-        os.makedirs(ssh_dir, exist_ok=True, mode=0o700)
+    if not keys:
+        logging.warning("No SSH keys to be copied. Skipping.")
+        return
 
-    with open(authorized_keys_file, 'a') as authorized_keys:
-        for key in keys:
-            pub = f'{key}.pub'
-            if not os.path.exists(pub):
-                logging.debug(f'Skipping key {key}: {pub} not found')
-                continue
+    auth_key_lines = []
+    for key in keys:
+        pub = f'{key}.pub'
+        if not os.path.exists(pub):
+            logging.debug(f'Skipping key {key}: {pub} not found')
+            continue
+        try:
             with open(pub, 'r') as file:
-                authorized_keys.write(file.read())
+                contents = file.read()
+                if not contents.strip():
+                    continue
+                auth_key_lines.append(contents)
+        except Exception as ex:
+            logging.warning(f"Could not read ssh pub key {pub}", exc_info=ex)
+            continue
+
+    if not os.path.exists(ssh_dir):
+        logging.info(f"Creating {ssh_dir_relative} dir in chroot {chroot.path}")
+        chroot.run_cmd(["mkdir", "-p", "-m", "700", ssh_dir_relative], switch_user=user)
+    logging.info(f"Writing SSH pub keys to {authorized_keys_file}")
+    write_file(authorized_keys_file, "\n".join(auth_key_lines), user=chroot.get_uid(user), mode="644")
