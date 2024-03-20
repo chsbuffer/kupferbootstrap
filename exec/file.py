@@ -144,7 +144,13 @@ def remove_file(path: str, recursive=False):
             raise Exception(f"Unable to remove {path}: cmd returned {rc}")
 
 
-def makedir(path, user: Optional[Union[str, int]] = None, group: Optional[Union[str, int]] = None, parents: bool = True):
+def makedir(
+    path,
+    user: Optional[Union[str, int]] = None,
+    group: Optional[Union[str, int]] = None,
+    parents: bool = True,
+    mode: Optional[Union[int, str]] = None,
+):
     if not root_check_exists(path):
         try:
             if parents:
@@ -153,6 +159,8 @@ def makedir(path, user: Optional[Union[str, int]] = None, group: Optional[Union[
                 os.mkdir(path)
         except:
             run_root_cmd(['mkdir'] + (['-p'] if parents else []) + [path])
+    if mode is not None:
+        chmod(path, mode=mode)
     chown(path, user, group)
 
 
