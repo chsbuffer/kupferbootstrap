@@ -403,7 +403,7 @@ def parse_pkgbuild(
         elif splits[0] in ['depends', 'makedepends', 'checkdepends', 'optdepends']:
             spec = splits[1].split(': ', 1)[0]
             if not current.depends:
-                current.depends = {}
+                current.depends = (base_package.makedepends or {}).copy()
             current.depends = get_version_specs(spec, current.depends)
             if splits[0] == 'makedepends':
                 if not current.makedepends:
