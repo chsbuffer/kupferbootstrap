@@ -15,7 +15,7 @@ arches_arg_optional = click.argument('arches', type=click.Choice(ARCHES), nargs=
 @cmd_binfmt.command('register', help='Register a binfmt handler with the kernel')
 @arches_arg
 def cmd_register(arches: list[Arch], disable_chroot: bool = False):
-    from packages.build import build_enable_qemu_binfmt
+    from ..packages.build import build_enable_qemu_binfmt
     for arch in arches:
         build_enable_qemu_binfmt(arch)
 

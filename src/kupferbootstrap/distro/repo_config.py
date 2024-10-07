@@ -8,10 +8,10 @@ import yaml
 from copy import deepcopy
 from typing import ClassVar, Optional, Mapping, Union
 
-from kupferbootstrap.config.state import config
-from kupferbootstrap.constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOS_CONFIG_FILE_USER, REPOSITORIES
-from kupferbootstrap.dictscheme import DictScheme, toml_inline_dicts, TomlPreserveInlineDictEncoder
-from kupferbootstrap.utils import sha256sum
+from ..config.state import config
+from ..constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOS_CONFIG_FILE_USER, REPOSITORIES
+from ..dictscheme import DictScheme, toml_inline_dicts, TomlPreserveInlineDictEncoder
+from ..utils import sha256sum
 
 REPOS_KEY = 'repos'
 REMOTEURL_KEY = 'remote_url'
@@ -149,7 +149,7 @@ def get_repo_config(
     config_exists = os.path.exists(repo_config_file_path)
     if not config_exists and _current_config is None:
         if initialize_pkgbuilds:
-            from packages.pkgbuild import init_pkgbuilds
+            from ..packages.pkgbuild import init_pkgbuilds
             init_pkgbuilds(update=False)
             return get_repo_config(initialize_pkgbuilds=False, repo_config_file=repo_config_file)
         if repo_config_file is not None:

@@ -205,7 +205,7 @@ def prompt_for_save(retry_ctx: Optional[click.Context] = None):
     If `retry_ctx` is passed, the context's command will be reexecuted with the same arguments if the user chooses to retry.
     False will still be returned as the retry is expected to either save, perform another retry or arbort.
     """
-    from wrapper import is_wrapped
+    from ..wrapper import is_wrapped
     if click.confirm(f'Do you want to save your changes to {config.runtime.config_file}?', default=True):
         if is_wrapped():
             logging.warning("Writing to config file inside wrapper."
