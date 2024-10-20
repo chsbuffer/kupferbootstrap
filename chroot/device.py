@@ -1,7 +1,7 @@
 import atexit
 import os
 
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, cast
 
 from config.state import config
 from constants import Arch, BASE_PACKAGES
@@ -20,15 +20,14 @@ class DeviceChroot(BuildChroot):
     _copy_base: ClassVar[bool] = False
 
     def create_rootfs(self, reset, pacman_conf_target, active_previously):
-        clss = BuildChroot if self.copy_base else BaseChroot
-
         makedir(config.get_path('chroots'))
         root_makedir(self.get_path())
         if not self.copy_base:
             pacman_conf_target = os.path.join(get_temp_dir(register_cleanup=True), f'pacman-{self.name}.conf')
             self.write_pacman_conf(in_chroot=False, absolute_path=pacman_conf_target)
-
-        clss.create_rootfs(self, reset, pacman_conf_target, active_previously)
+            BaseChroot.create_rootfs(cast(BaseChroot, self), reset, pacman_conf_target, active_previously)
+        else:
+            BuildChroot.create_rootfs(self, reset, pacman_conf_target, active_previously)
 
     def mount_rootfs(self, source_path: str, fs_type: Optional[str] = None, options: list[str] = [], allow_overlay: bool = False):
         if self.active:
