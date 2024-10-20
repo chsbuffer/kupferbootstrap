@@ -38,7 +38,7 @@ def ctx() -> click.Context:
 
 
 def test_main_import():
-    from main import cli
+    from kupferbootstrap.main import cli
     assert cli
 
 
