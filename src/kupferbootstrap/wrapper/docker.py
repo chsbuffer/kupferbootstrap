@@ -65,6 +65,9 @@ class DockerWrapper(Wrapper):
             cmd = [
                 'docker',
                 'build',
+                '--pull',
+                '--network',
+                'host',
                 '.',
                 '-t',
                 tag,
@@ -120,6 +123,8 @@ class DockerWrapper(Wrapper):
         docker_cmd = [
             'docker',
             'run',
+            '--net',
+            'host',
             '--name',
             container_name,
             '--rm',
