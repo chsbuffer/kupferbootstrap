@@ -28,6 +28,7 @@ dev = [
 
 [project.scripts]
 kupferbootstrap = "kupferbootstrap.main:main"
+kupferbootstrap_wrapper_su_helper = "kupferbootstrap.wrapper.su_helper:kupferbootstrap_su"
 
 [tool.setuptools.package-data]
 "*" = ["version.txt"]
