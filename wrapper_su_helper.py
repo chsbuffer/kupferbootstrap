@@ -24,7 +24,9 @@ def kupferbootstrap_su(cmd: list[str], uid: int = 1000, username: str = 'kupfer'
         run_cmd(['usermod', '-o', '-u', str(uid), username]).check_returncode()  # type: ignore[union-attr]
         chown(home, username, recursive=False)
     logging.debug(f'wrapper_su_helper: running {cmd} as {repr(username)}')
-    env_inject = ['env', f'{WRAPPER_ENV_VAR}={os.environ[WRAPPER_ENV_VAR]}'] if WRAPPER_ENV_VAR in os.environ else []
+    env_inject = ['env', f'PATH={os.environ["PATH"]}']
+    if WRAPPER_ENV_VAR in os.environ:
+        env_inject.append(f'{WRAPPER_ENV_VAR}={os.environ[WRAPPER_ENV_VAR]}')
     su_cmd = ['sudo', *env_inject, 'su', '-P', username, '-c', flatten_shell_script(cmd, wrap_in_shell_quote=True, shell_quote_items=True)]
     result = run_cmd(su_cmd, attach_tty=True)
     assert isinstance(result, int)
