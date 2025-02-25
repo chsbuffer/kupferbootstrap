@@ -1,5 +1,1 @@
-autoflake
-mypy
-yapf
-pytest
-pytest-cov
+requirements-dev.txt

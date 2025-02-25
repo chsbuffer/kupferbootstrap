@@ -4,11 +4,14 @@ PYTHON := python3
 INSTALL_BINARY_NAME := kupferbootstrap
 INSTALL_TARGET := ${HOME}/.local/bin/$(INSTALL_BINARY_NAME)
 
-.PHONY: KBS_HELP install
+.PHONY: KBS_HELP install venv_dev
 DEFAULT: KBS_HELP
 
 $(VENV)/bin/pip3:
 	$(PYTHON) -m venv $(VENV)
+
+venv_dev: $(VENV)/bin/pip3 pyproject.toml requirements.txt requirements-dev.txt
+	$(VENV)/bin/pip3 install -r requirements-dev.txt
 
 $(KUPFERBOOTSTRAP): $(VENV)/bin/pip3 pyproject.toml requirements.txt
 	$(VENV)/bin/pip3 install -r requirements.txt

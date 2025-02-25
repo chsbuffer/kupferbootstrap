@@ -16,6 +16,16 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+all = ["kupferbootstrap[dev]"]
+dev = [
+    "autoflake",
+    "mypy",
+    "yapf",
+    "pytest",
+    "pytest-cov",
+]
+
 [project.scripts]
 kupferbootstrap = "kupferbootstrap.main:main"
 
