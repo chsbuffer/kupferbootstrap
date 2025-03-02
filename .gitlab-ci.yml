@@ -31,6 +31,7 @@ pytest:
     - 'echo "kupfer ALL = (ALL) NOPASSWD: ALL" > /etc/sudoers.d/kupfer_all'
     - useradd -m kupfer
     - chmod 777 .
+    - usermod --unlock --expiredate="" nobody
   script:
     - script -e -c 'su kupfer -s /bin/bash -c "INTEGRATION_TESTS_USE_GLOBAL_CONFIG=TRUE KUPFERBOOTSTRAP_WRAPPED=DOCKER ./pytest.sh --junit-xml=pytest-report.xml --cov-report=xml:coverage.xml integration_tests.py"'
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
