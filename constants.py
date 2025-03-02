@@ -60,7 +60,6 @@ TargetArch: TypeAlias = Arch
 ALARM_REPOS = {
     'core': 'http://mirror.archlinuxarm.org/$arch/$repo',
     'extra': 'http://mirror.archlinuxarm.org/$arch/$repo',
-    'community': 'http://mirror.archlinuxarm.org/$arch/$repo',
     'alarm': 'http://mirror.archlinuxarm.org/$arch/$repo',
     'aur': 'http://mirror.archlinuxarm.org/$arch/$repo',
 }
@@ -70,7 +69,6 @@ BASE_DISTROS: dict[DistroArch, dict[str, dict[str, str]]] = {
         'repos': {
             'core': 'https://geo.mirror.pkgbuild.com/$repo/os/$arch',
             'extra': 'https://geo.mirror.pkgbuild.com/$repo/os/$arch',
-            'community': 'https://geo.mirror.pkgbuild.com/$repo/os/$arch',
         },
     },
     'aarch64': {
