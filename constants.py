@@ -30,6 +30,7 @@ POST_INSTALL_CMDS = [
 ]
 
 REPOS_CONFIG_FILE = "repos.yml"
+REPOS_CONFIG_FILE_USER = "repos.local.yml"
 
 REPOSITORIES = [
     'boot',

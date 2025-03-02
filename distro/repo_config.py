@@ -9,7 +9,7 @@ from copy import deepcopy
 from typing import ClassVar, Optional, Mapping, Union
 
 from config.state import config
-from constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOSITORIES
+from constants import Arch, BASE_DISTROS, KUPFER_HTTPS, REPOS_CONFIG_FILE, REPOS_CONFIG_FILE_USER, REPOSITORIES
 from dictscheme import DictScheme, toml_inline_dicts, TomlPreserveInlineDictEncoder
 from utils import sha256sum
 
@@ -134,9 +134,11 @@ def get_repo_config(
     repo_config_file: Optional[str] = None,
 ) -> tuple[ReposConfigFile, bool]:
     global _current_config
-    repo_config_file_default = os.path.join(config.get_path('pkgbuilds'), REPOS_CONFIG_FILE)
+    user_repo_config = os.path.join(config.get_path('pkgbuilds'), REPOS_CONFIG_FILE_USER)
     if repo_config_file is None:
-        repo_config_file_path = repo_config_file_default
+        repo_config_file_path = os.path.join(config.get_path('pkgbuilds'), REPOS_CONFIG_FILE)
+        if os.path.exists(user_repo_config):
+            repo_config_file_path = user_repo_config
     else:
         repo_config_file_path = repo_config_file
     config_exists = os.path.exists(repo_config_file_path)
@@ -150,6 +152,9 @@ def get_repo_config(
         logging.warning(f"{repo_config_file_path} doesn't exist, using built-in repo config defaults")
         _current_config = deepcopy(REPOS_CONFIG_DEFAULT)
         return _current_config, False
+    if os.path.exists(user_repo_config):
+        repo_config_file_path = user_repo_config
+        config_exists = True
     changed = False
     if (not _current_config) or (config_exists and _current_config._checksum != sha256sum(repo_config_file_path)):
         if config_exists:
