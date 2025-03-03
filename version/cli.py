@@ -1,0 +1,62 @@
+import click
+import logging
+
+from constants import REPOS_CONFIG_FILE
+from distro.repo_config import get_repo_config
+from .kbs import get_kbs_version, compare_kbs_version, compare_kbs_ci_version
+
+
+@click.group("version", no_args_is_help=False, invoke_without_command=True)
+@click.pass_context
+def cmd_version(ctx: click.Context):
+    """
+    Print KBS version or check for PKGBUILDs compatibility
+    """
+    if not ctx.invoked_subcommand:
+        ctx.invoke(cmd_version_show)
+
+
+@cmd_version.command("show")
+def cmd_version_show():
+    """
+    Print the current version and exit (default action)
+    """
+    version = get_kbs_version()
+    if not version:
+        logging.error(f"Failed to fetch KBS version: {version=}")
+        exit(1)
+    print(version)
+
+
+@cmd_version.command("check")
+@click.option("--ci-mode", "--ci", is_flag=True, default=False, help="Compare local version against required Build-CI version")
+def cmd_version_check(ci_mode: bool = False):
+    """
+    Compare KBS version against minimum version from PKGBUILDs
+
+    The PKGBUILDs repo contains a repos.yml file that contains a minimum KBS version needed/recommended.
+
+    Returns 0 if the KBS version is >= the minimum version.
+    Returns 1 if the KBS version is smaller than the minimum version.
+    Returns 2 on other failures, e.g. missing files.
+    """
+    kbs_version = get_kbs_version()
+    if not kbs_version:
+        logging.error("Can't compare KBS version as we failed to fetch it")
+        exit(2)
+    repo_config, file_found = get_repo_config(initialize_pkgbuilds=False)
+    if not file_found:
+        logging.error(f"{REPOS_CONFIG_FILE} not found in PKGBUILDs, can't check KBS version for compatibility")
+        exit(2)
+    res = compare_kbs_version(kbs_version=kbs_version, repo_config=repo_config)
+    if ci_mode:
+        res_ci = compare_kbs_ci_version(kbs_version=kbs_version, repo_config=repo_config)
+        if res_ci is None:
+            exit(2)
+        if res_ci:
+            logging.info("KBS CI version is new enough!")
+    if res is None:
+        exit(2)
+    if res:
+        logging.info(f"{'Success: ' if res_ci else ''}KBS version {kbs_version!r} is new enough for PKGBUILDs!")
+    exit(0 if res and res_ci else 1)

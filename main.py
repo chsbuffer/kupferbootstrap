@@ -20,6 +20,7 @@ from net.cli import cmd_net
 from chroot.cli import cmd_chroot
 from cache.cli import cmd_cache
 from image.cli import cmd_image
+from version.cli import cmd_version
 
 
 @click.group()
@@ -87,6 +88,7 @@ cli.add_command(cmd_flavours)
 cli.add_command(cmd_image)
 cli.add_command(cmd_net)
 cli.add_command(cmd_packages)
+cli.add_command(cmd_version)
 
 if __name__ == '__main__':
     main()
