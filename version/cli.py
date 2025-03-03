@@ -6,6 +6,16 @@ from distro.repo_config import get_repo_config
 from .kbs import get_kbs_version, compare_kbs_version, compare_kbs_ci_version
 
 
+def _check_kbs_version(*, init_pkgbuilds: bool = False, ci_mode: bool = False):  # quiet helper for other modules
+    repo_config, repo_config_found = get_repo_config(initialize_pkgbuilds=init_pkgbuilds)
+    if not repo_config_found:
+        return
+    kbs_version = get_kbs_version()
+    if not kbs_version:
+        return
+    compare_kbs_version(kbs_version, repo_config)
+
+
 @click.group("version", no_args_is_help=False, invoke_without_command=True)
 @click.pass_context
 def cmd_version(ctx: click.Context):

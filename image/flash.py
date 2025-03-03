@@ -11,6 +11,7 @@ from exec.file import get_temp_dir
 from devices.device import get_profile_device
 from flavours.flavour import get_profile_flavour
 from flavours.cli import profile_option
+from version.cli import _check_kbs_version
 from wrapper import enforce_wrap
 
 from .fastboot import fastboot_flash
@@ -90,6 +91,7 @@ def cmd_flash(
     - jumpdrive: one of "emmc", "sdcard" or a path to a block device
     """
     enforce_wrap()
+    _check_kbs_version(init_pkgbuilds=True)
     device = get_profile_device(profile)
     flavour = get_profile_flavour(profile).name
     device_image_path = get_image_path(device, flavour)

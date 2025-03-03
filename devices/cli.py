@@ -9,6 +9,7 @@ from config.cli import resolve_profile_field
 from utils import color_mark_selected, colors_supported
 
 from .device import get_devices, get_device
+from version.cli import _check_kbs_version
 
 
 @click.command(name='devices')
@@ -33,6 +34,7 @@ def cmd_devices(
     output_file: Optional[str] = None,
 ):
     'list the available devices and descriptions'
+    _check_kbs_version(init_pkgbuilds=False)
     devices = get_devices()
     if not devices:
         raise Exception("No devices found!")

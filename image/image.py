@@ -19,6 +19,7 @@ from exec.file import get_temp_dir, root_write_file, root_makedir, makedir
 from flavours.flavour import Flavour, get_profile_flavour
 from net.ssh import copy_ssh_keys
 from packages.build import build_enable_qemu_binfmt, build_packages, filter_pkgbuilds
+from version.cli import _check_kbs_version
 from wrapper import enforce_wrap
 
 # image files need to be slightly smaller than partitions to fit
@@ -435,6 +436,7 @@ def cmd_build(
     config.enforce_profile_device_set()
     config.enforce_profile_flavour_set()
     enforce_wrap()
+    _check_kbs_version(init_pkgbuilds=True)
     device = get_profile_device(profile_name)
     arch = device.arch
     # check_programs_wrap(['makepkg', 'pacman', 'pacstrap'])
@@ -515,6 +517,7 @@ def cmd_inspect(profile: Optional[str] = None, shell: bool = False, sector_size:
     config.enforce_profile_device_set()
     config.enforce_profile_flavour_set()
     enforce_wrap()
+    _check_kbs_version(init_pkgbuilds=True)
     device = get_profile_device(profile)
     arch = device.arch
     flavour = get_profile_flavour(profile).name

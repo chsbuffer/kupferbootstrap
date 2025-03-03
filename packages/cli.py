@@ -15,6 +15,7 @@ from distro.distro import get_kupfer_local, get_kupfer_url, get_kupfer_repo_name
 from distro.package import LocalPackage
 from net.ssh import run_ssh_command, scp_put_files
 from utils import download_file, git, sha256sum
+from version.cli import _check_kbs_version
 from wrapper import check_programs_wrap, enforce_wrap
 
 from .build import build_packages_by_paths, init_prebuilts
@@ -37,6 +38,7 @@ def build(
     if arch not in ARCHES:
         raise Exception(f'Unknown architecture "{arch}". Choices: {", ".join(ARCHES)}')
 
+    _check_kbs_version(init_pkgbuilds=True)
     return build_packages_by_paths(
         paths,
         arch,
@@ -160,6 +162,7 @@ def cmd_update(
     """Update PKGBUILDs git repo"""
     enforce_wrap()
     init_pkgbuilds(interactive=not non_interactive, lazy=False, update=True, switch_branch=switch_branch, discard_changes=discard_changes)
+    _check_kbs_version(init_pkgbuilds=False)
     if init_caches:
         init_pkgbuild_caches(clean_src_dirs=clean_src_dirs)
     logging.info("Refreshing outdated SRCINFO caches")
@@ -183,6 +186,7 @@ def cmd_init(
 ):
     "Ensure PKGBUILDs git repo is checked out locally"
     init_pkgbuilds(interactive=not non_interactive, lazy=False, update=update, switch_branch=switch_branch, discard_changes=discard_changes)
+    _check_kbs_version(init_pkgbuilds=False)
     if init_caches:
         init_pkgbuild_caches(clean_src_dirs=clean_src_dirs)
     for arch in ARCHES:
@@ -308,7 +312,8 @@ def cmd_list():
     if not os.path.exists(pkgdir):
         raise Exception(f"PKGBUILDs seem not to be initialised yet: {pkgdir} doesn't exist!\n"
                         f"Try running `kupferbootstrap packages init` first!")
-    check_programs_wrap(['makepkg', 'pacman'])
+    check_programs_wrap(['git', 'makepkg', 'pacman'])
+    _check_kbs_version(init_pkgbuilds=False)
     packages = discover_pkgbuilds()
     logging.info(f'Done! {len(packages)} Pkgbuilds:')
     for name in sorted(packages.keys()):
@@ -318,11 +323,13 @@ def cmd_list():
 
 
 @cmd_packages.command(name='check')
+@click.option("--ci-mode", "--ci", is_flag=True, default=False)
 @click.argument('paths', nargs=-1)
-def cmd_check(paths):
+def cmd_check(paths: list[str], ci_mode: bool = False):
     """Check that specified PKGBUILDs are formatted correctly"""
     config.enforce_config_loaded()
-    check_programs_wrap(['makepkg'])
+    check_programs_wrap(['makepkg', 'git'])
+    _check_kbs_version(init_pkgbuilds=False, ci_mode=ci_mode)
 
     def check_quoteworthy(s: str) -> bool:
         quoteworthy = ['"', "'", "$", " ", ";", "&", "<", ">", "*", "?"]

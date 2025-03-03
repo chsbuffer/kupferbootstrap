@@ -10,6 +10,7 @@ from exec.file import makedir
 from devices.device import get_profile_device
 from flavours.flavour import get_profile_flavour
 from flavours.cli import profile_option
+from version.cli import _check_kbs_version
 from wrapper import enforce_wrap
 
 from .fastboot import fastboot_boot, fastboot_erase
@@ -42,6 +43,7 @@ def cmd_boot(
 ):
     """Boot JumpDrive or the Kupfer aboot image. Erases Android DTBO in the process."""
     enforce_wrap()
+    _check_kbs_version(init_pkgbuilds=True)
     device = get_profile_device(profile)
     flavour = get_profile_flavour(profile).name
     deviceinfo = device.parse_deviceinfo()

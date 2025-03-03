@@ -9,6 +9,7 @@ from config.state import config
 from utils import color_mark_selected, colors_supported
 
 from .flavour import get_flavours, get_flavour
+from version.cli import _check_kbs_version
 
 profile_option = click.option('-p', '--profile', help="name of the profile to use", required=False, default=None)
 
@@ -21,13 +22,14 @@ def cmd_flavours(json: bool = False, output_file: Optional[str] = None):
     results = []
     json_results = {}
     profile_flavour = None
-    flavours = get_flavours()
     interactive_json = json and not output_file
     use_colors = colors_supported(config.runtime.colors) and not interactive_json
     profile_name = config.file.profiles.current
     selected, inherited_from = None, None
     if output_file:
         json = True
+    _check_kbs_version(init_pkgbuilds=False)
+    flavours = get_flavours()
     if not flavours:
         raise Exception("No flavours found!")
     if not interactive_json:
