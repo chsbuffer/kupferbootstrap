@@ -51,8 +51,8 @@ class ReposConfigFile(DictScheme):
     _strip_hidden: ClassVar[bool] = True
     _sparse: ClassVar[bool] = True
 
-    def __init__(self, d, **kwargs):
-        super().__init__(d=d, **kwargs)
+    def __init__(self, d, *, allow_extra: bool = True, **kwargs):
+        super().__init__(d=d, allow_extra=allow_extra, **kwargs)
         self[REPOS_KEY] = self.get(REPOS_KEY, {})
         for repo_cls, defaults, repos, remote_url in [
             (RepoConfig, REPO_DEFAULTS, self.get(REPOS_KEY), d.get(REMOTEURL_KEY, None)),
@@ -65,6 +65,9 @@ class ReposConfigFile(DictScheme):
                 if REMOTEURL_KEY not in repo and not repo.get(LOCALONLY_KEY, None):
                     _repo[REMOTEURL_KEY] = remote_url
                 repos[name] = repo_cls(_repo, **kwargs)
+
+    def update(self, *kargs, allow_extra: bool = True, **kwargs):
+        return super().update(*kargs, allow_extra=allow_extra, **kwargs)  # type: ignore[misc]
 
     @staticmethod
     def parse_config(path: str) -> ReposConfigFile:
