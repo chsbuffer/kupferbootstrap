@@ -43,6 +43,8 @@ class BaseDistro(DictScheme):
 
 
 class ReposConfigFile(DictScheme):
+    kbs_min_version: Optional[str]
+    kbs_ci_version: Optional[str]
     remote_url: Optional[str]
     repos: dict[str, RepoConfig]
     base_distros: dict[Arch, BaseDistro]
