@@ -51,8 +51,8 @@ class DictScheme(Munch):
     _strip_hidden: ClassVar[bool] = False
     _sparse: ClassVar[bool] = False
 
-    def __init__(self, d: Mapping = {}, validate: bool = True, **kwargs):
-        self.update(dict(d) | kwargs, validate=validate)
+    def __init__(self, d: Mapping = {}, validate: bool = True, allow_extra: bool = False, **kwargs):
+        self.update(dict(d) | kwargs, validate=validate, allow_extra=allow_extra)
 
     @classmethod
     def transform(
@@ -162,8 +162,8 @@ class DictScheme(Munch):
         return results
 
     @classmethod
-    def fromDict(cls, values: Mapping[str, Any], validate: bool = True):
-        return cls(d=values, validate=validate)
+    def fromDict(cls, values: Mapping[str, Any], validate: bool = True, **kwargs):
+        return cls(d=values, validate=validate, **kwargs)
 
     def toDict(
         self,
@@ -251,8 +251,8 @@ class DictScheme(Munch):
                 )
         return result
 
-    def update(self, d: Mapping[str, Any], validate: bool = True):
-        Munch.update(self, type(self).transform(d, validate=validate))
+    def update(self, d: Mapping[str, Any], validate: bool = True, allow_extra: bool = False):
+        Munch.update(self, type(self).transform(d, validate=validate, allow_extra=allow_extra))
 
     def __init_subclass__(cls):
         super().__init_subclass__()

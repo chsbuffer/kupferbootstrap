@@ -269,5 +269,5 @@ def parse_deviceinfo(deviceinfo_lines: list[str], device_name: str, kernel='main
     if 'arch' in info:
         arch = info['arch']
         info['arch'] = PMOS_ARCHES_OVERRIDES.get(arch, arch)  # type: ignore[arg-type]
-    dev = DeviceInfo.fromDict(info)
+    dev = DeviceInfo.fromDict(info, allow_extra=True)
     return dev

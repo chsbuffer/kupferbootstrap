@@ -73,6 +73,9 @@ class ProfilesSection(DictScheme):
     current: str
     default: SparseProfile
 
+    def __init__(self, *kargs, allow_extra: bool = True, **kwargs):
+        super().__init__(*kargs, allow_extra=allow_extra, **kwargs)  # type: ignore[misc]
+
     @classmethod
     def transform(cls, values: Mapping[str, Any], validate: bool = True, allow_extra: bool = True, type_hints: Optional[dict[str, Any]] = None):
         results = {}
@@ -84,11 +87,11 @@ class ProfilesSection(DictScheme):
                 raise Exception(f'Unknown key {k} in profiles section (Hint: extra_keys not allowed for some reason)')
             if not isinstance(v, dict):
                 raise Exception(f'profile {v} is not a dict!')
-            results[k] = SparseProfile.fromDict(v, validate=True)
+            results[k] = SparseProfile.fromDict(v, validate=True, allow_extra=allow_extra)
         return results
 
-    def update(self, d, validate: bool = True):
-        Munch.update(self, self.transform(values=d, validate=validate))
+    def update(self, d, validate: bool = True, **kwargs):  # type: ignore[override]
+        Munch.update(self, self.transform(values=d, validate=validate, **kwargs))
 
     def __repr__(self):
         return f'{type(self)}{dict.__repr__(self.toDict())}'
@@ -103,12 +106,12 @@ class Config(DictScheme):
     profiles: ProfilesSection
 
     @classmethod
-    def fromDict(
-        cls,
-        values: Mapping[str, Any],
-        validate: bool = True,
-        allow_extra: bool = False,
-        allow_incomplete: bool = False,
+    def fromDict(  # type: ignore[override]
+            cls,
+            values: Mapping[str, Any],
+            validate: bool = True,
+            allow_extra: bool = False,
+            allow_incomplete: bool = False,
     ):
         values = dict(values)  # copy for later modification
         _vals = {}
@@ -119,7 +122,7 @@ class Config(DictScheme):
                 continue
             value = values.pop(name)
             if not isinstance(value, _class):
-                value = _class.fromDict(value, validate=validate)
+                value = _class(value, validate=validate)
             _vals[name] = value
 
         if values:
