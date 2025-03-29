@@ -1,7 +1,7 @@
 from kupferbootstrap.config.state import config
 
-from .deviceinfo import DeviceInfo, parse_deviceinfo
-from .device import get_device
+from kupferbootstrap.devices.deviceinfo import DeviceInfo, parse_deviceinfo
+from kupferbootstrap.devices.device import get_device
 
 deviceinfo_text = """
 # Reference: <https://postmarketos.org/deviceinfo>

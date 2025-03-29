@@ -5,7 +5,7 @@ import subprocess
 
 from typing import Optional
 
-from .cmd import run_cmd, run_root_cmd, generate_cmd_su
+from kupferbootstrap.exec.cmd import run_cmd, run_root_cmd, generate_cmd_su
 
 
 def get_username(id: int):

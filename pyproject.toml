@@ -24,6 +24,7 @@ dev = [
     "yapf",
     "pytest",
     "pytest-cov",
+    "pytest-order",
 ]
 
 [project.scripts]
@@ -39,3 +40,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools-git-versioning]
 enabled = true
+
+
+[tool.pytest.ini_options]
+"markers" = [
+    "integration: run integration tests",
+]

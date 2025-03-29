@@ -5,8 +5,8 @@ import os
 from copy import copy
 
 from kupferbootstrap.config.state import ConfigStateHolder, config
+from kupferbootstrap.devices.device import Device, DEVICE_DEPRECATIONS, get_device, get_devices, parse_device_pkg, check_devicepkg_name
 from kupferbootstrap.packages.pkgbuild import init_pkgbuilds, discover_pkgbuilds, Pkgbuild, parse_pkgbuild
-from .device import Device, DEVICE_DEPRECATIONS, get_device, get_devices, parse_device_pkg, check_devicepkg_name
 
 
 @pytest.fixture(scope='session')

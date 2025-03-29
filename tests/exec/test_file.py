@@ -6,8 +6,8 @@ import stat
 from typing import Union, Generator
 from dataclasses import dataclass
 
-from .cmd import run_root_cmd
-from .file import chmod, chown, get_temp_dir, write_file
+from kupferbootstrap.exec.cmd import run_root_cmd
+from kupferbootstrap.exec.file import chmod, chown, get_temp_dir, write_file
 from kupferbootstrap.utils import get_gid, get_uid
 
 TEMPDIR_MODE = 0o755

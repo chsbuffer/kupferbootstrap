@@ -20,6 +20,28 @@ setup_logging(True)
 PKG_TEST_PATH = 'device/device-sdm845-oneplus-enchilada'
 PKG_TEST_NAME = 'device-sdm845-xiaomi-beryllium-ebbg'
 
+INTEGRATION_TESTS_ENABLE_ENV_VAR = "INTEGRATION_TESTS_ENABLE"
+
+
+integration_enabled = False
+try:
+    integration_enabled = bool(int(os.environ.get(INTEGRATION_TESTS_ENABLE_ENV_VAR, 0)) > 0)
+except:
+    pass
+
+
+pytestmark = [
+    pytest.mark.skipif(
+        condition=not integration_enabled,
+        reason=(
+            "Integration tests disabled by default, "
+            f"set env var {INTEGRATION_TESTS_ENABLE_ENV_VAR}=1 to enable."
+        ),
+    ),
+    pytest.mark.integration(),
+    pytest.mark.order("first"),
+]
+
 
 @pytest.fixture()
 def ctx() -> click.Context:

@@ -1,8 +1,8 @@
 from pytest import mark
 from typing import Optional
 
-from .kbs import get_kbs_version, compare_kbs_version_generic
-from .compare import VerComp
+from kupferbootstrap.version.kbs import get_kbs_version, compare_kbs_version_generic
+from kupferbootstrap.version.compare import VerComp
 
 
 def test_get_kbs_version():

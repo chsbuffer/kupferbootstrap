@@ -1,6 +1,6 @@
 import pytest
 
-from .flavour import Flavour, get_flavour, get_flavours
+from kupferbootstrap.flavours.flavour import Flavour, get_flavour, get_flavours
 
 FLAVOUR_NAME = 'phosh'
 
