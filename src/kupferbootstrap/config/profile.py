@@ -95,7 +95,7 @@ def resolve_profile(
     for key, value in PROFILE_DEFAULTS_DICT.items():
         if key not in full.keys():
             full[key] = value  # type: ignore[literal-required]
-            if type(value) == list:
+            if type(value) is list:
                 full[key] = []  # type: ignore[literal-required]
 
     full["size_extra_mb"] = int(full["size_extra_mb"] or 0)

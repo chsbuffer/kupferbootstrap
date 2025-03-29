@@ -254,10 +254,10 @@ class Chroot(AbstractChroot):
         # make sure paths start with '/'. Important: also copies the collection and casts to list, which will be sorted!
         mounts = [make_abs_path(path) for path in relative_paths]
         mounts.sort(reverse=True)
-        for mount in mounts:
-            if mount == "/proc":
+        for _mount in mounts:
+            if _mount == "/proc":
                 continue
-            self.umount(mount)
+            self.umount(_mount)
         if "/proc" in mounts:
             self.umount("/proc")
 

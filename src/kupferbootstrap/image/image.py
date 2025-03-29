@@ -78,16 +78,17 @@ def get_fs_size(partition: str) -> tuple[int, int]:
         blocks_cmd.stdout.decode("utf-8") if blocks_cmd.stdout else ""
     )
     try:
-        fs_blocks = int(
-            re.search(
-                "\\nBlock count:[ ]+([0-9]+)\\n",
-                blocks_text,
-                flags=re.MULTILINE,
-            ).group(1)
-        )  # type: ignore[union-attr]
-        fs_block_size = int(
-            re.search("\\nBlock size:[ ]+([0-9]+)\\n", blocks_text).group(1)
-        )  # type: ignore[union-attr]
+        re_blocks = re.search(
+            "\\nBlock count:[ ]+([0-9]+)\\n",
+            blocks_text,
+            flags=re.MULTILINE,
+        )
+        assert re_blocks, "Block output should contain block count"
+        fs_blocks = int(re_blocks.group(1))
+
+        re_blocksize = re.search("\\nBlock size:[ ]+([0-9]+)\\n", blocks_text)
+        assert re_blocksize, "Block output should contain block size"
+        fs_block_size = int(re_blocksize.group(1))
     except Exception as ex:
         logging.debug(f"dumpe2fs stdout:\n  {blocks_text}")
         logging.debug(f"dumpe2fs stderr:\n: {blocks_cmd.stderr}")
@@ -133,6 +134,7 @@ def shrink_fs(loop_device: str, file: str, sector_size: int):
         ),  # type: ignore
         stdin=subprocess.PIPE,
     )
+    assert child_proccess.stdin is not None
     child_proccess.stdin.write(
         "\n".join(
             [  # type: ignore

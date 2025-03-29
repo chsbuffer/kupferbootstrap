@@ -71,7 +71,7 @@ def chmod(
         octal = octal.rjust(4, "0")
     try:
         os.chmod(path, mode=octal)  # type: ignore
-    except:
+    except Exception:
         cmd = ["chmod", octal, path]
         result = run_cmd(cmd, switch_user="root" if privileged else None)
         assert isinstance(result, subprocess.CompletedProcess)
@@ -177,7 +177,7 @@ def remove_file(path: str, recursive=False):
     try:
         rm = rmtree if recursive else os.unlink
         rm(path)  # type: ignore
-    except:
+    except Exception:
         cmd = ["rm"] + (["-r"] if recursive else []) + [path]
         rc = run_root_cmd(cmd).returncode
         if rc:
@@ -197,7 +197,7 @@ def makedir(
                 os.makedirs(path, exist_ok=True)
             else:
                 os.mkdir(path)
-        except:
+        except Exception:
             run_root_cmd(["mkdir"] + (["-p"] if parents else []) + [path])
     if mode is not None:
         chmod(path, mode=mode)
@@ -212,7 +212,7 @@ def symlink(source, target):
     "Create a symlink at `target`, pointing at `source`"
     try:
         os.symlink(source, target)
-    except:
+    except Exception:
         result = run_root_cmd(["ln", "-s", source, target])
         assert isinstance(result, subprocess.CompletedProcess)
         if result.returncode:

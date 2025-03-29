@@ -34,7 +34,7 @@ try:
     integration_enabled = bool(
         int(os.environ.get(INTEGRATION_TESTS_ENABLE_ENV_VAR, 0)) > 0
     )
-except:
+except Exception:
     pass
 
 

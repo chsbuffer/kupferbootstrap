@@ -274,7 +274,7 @@ class ConfigStateHolder:
             raise ConfigLoadException(Exception(m))
         ex = self.file_state.exception
         if ex:
-            if type(ex) == FileNotFoundError:
+            if isinstance(ex, FileNotFoundError):
                 ex = Exception(
                     "Config file doesn't exist. Try running `kupferbootstrap config init` first?"
                 )

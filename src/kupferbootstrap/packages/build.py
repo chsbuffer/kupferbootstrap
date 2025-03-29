@@ -747,7 +747,7 @@ def build_package(
             failed_deps = [
                 name
                 for name, res in dep_install.items()
-                if res.returncode != 0
+                if (res.returncode if not isinstance(res, int) else res) != 0
             ]  # type: ignore[union-attr]
             if failed_deps:
                 raise Exception(
@@ -1092,7 +1092,8 @@ def build_enable_qemu_binfmt(
         .packages
     )
     pkgfiles = [
-        os.path.join(crossrepo[pkg].resolved_url.split("file://")[1])
+        # we want this to crash on unresolved URL
+        os.path.join((crossrepo[pkg].resolved_url or "").split("file://")[1])
         for pkg in QEMU_BINFMT_PKGS
     ]  # type: ignore
     runcmd = run_root_cmd

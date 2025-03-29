@@ -57,14 +57,14 @@ def prompt_config(
             to_check or to_check is zero
         )  # can't do == due to boolean<->int casting
 
-    if type(None) == field_type:
+    if type(None) is field_type:
         field_type = str
 
-    if field_type == dict:
+    if field_type is dict:
         raise Exception(
             "Dictionaries not supported by config_prompt, this is likely a bug in kupferbootstrap"
         )
-    elif field_type == list:
+    elif field_type is list:
         default = list_to_comma_str(default)
         value_conv = comma_str_to_list
     else:
@@ -83,7 +83,7 @@ def prompt_config(
         show_choices=show_choices,
     )  # type: ignore
     changed = result != (
-        original_default if field_type == list else default
+        original_default if field_type is list else default
     ) and (true_or_zero(default) or true_or_zero(result))
     if changed and echo_changes:
         print(f'value changed: "{text}" = "{result}"')
@@ -411,7 +411,7 @@ def cmd_config_set(
             key: str = split_pair[0]
             value: Any = split_pair[1]
             value_type = type(config_dot_name_get(key, CONFIG_DEFAULTS))
-            if value_type != list:
+            if value_type is not list:
                 value = click.types.convert_type(value_type)(value)
             else:
                 value = comma_str_to_list(value, default=[])

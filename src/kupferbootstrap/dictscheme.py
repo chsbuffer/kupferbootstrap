@@ -50,7 +50,7 @@ def resolve_dict_hints(hints: Any) -> Generator[tuple[Any, ...], None, None]:
     for hint in flatten_hints(hints):
         t_origin = get_origin(hint)
         t_args = get_args(hint)
-        if t_origin == dict:
+        if t_origin is dict:
             yield t_args
             continue
         if t_origin in [NoneType, Optional, Union, UnionType] and t_args:
@@ -294,7 +294,7 @@ class DictScheme(Munch):
                 hints_flat = list(flatten_hints(_hints))
                 subclass = DictScheme
                 for hint in hints_flat:
-                    if get_origin(hint) == dict:
+                    if get_origin(hint) is dict:
                         _valtype = get_args(hint)[1]
                         _subhints = {n: _valtype for n in v.keys()}
                         break

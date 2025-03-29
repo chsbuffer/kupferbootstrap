@@ -84,7 +84,7 @@ def get_device_chroot(
     **kwargs,
 ) -> DeviceChroot:
     name = f"rootfs_{device}-{flavour}"
-    repos: dict[str, RepoInfo] = (
+    repos: dict[str, RepoInfo] = dict(
         get_kupfer_local(arch).repos
         if use_local_repos
         else get_kupfer_https(arch).repos
