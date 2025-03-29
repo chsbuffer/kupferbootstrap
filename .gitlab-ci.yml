@@ -15,6 +15,16 @@ format:
   script:
     - ruff format --check --diff
 
+lint:
+  stage: check
+  extends: .ruff
+  script:
+    - ruff check --output-format=gitlab > code-quality-report.json || true
+    - ruff check
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code-quality-report.json
+
 typecheck:
   stage: check
   image: python
