@@ -3,15 +3,17 @@ stages:
   - build
   - deploy
 
+.ruff:
+  image:  ghcr.io/astral-sh/ruff:0.11-alpine
+  before_script:
+    - cd $CI_PROJECT_DIR
+    - ruff --version
+
 format:
   stage: check
-  image: python
-  before_script:
-    - python3 -m venv venv
-    - venv/bin/pip3 install yapf autoflake
+  extends: .ruff
   script:
-    - source venv/bin/activate
-    - ./format.sh --check
+    - ruff format --check --diff
 
 typecheck:
   stage: check

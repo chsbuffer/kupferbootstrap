@@ -21,12 +21,16 @@ requires-python = ">= 3.11"
 all = ["kupferbootstrap[dev]", "kupferbootstrap[docs]"]
 
 dev = [
-    "autoflake",
     "mypy",
-    "yapf",
+    "pylsp-mypy",
+    "pylsp-rope",
+    "python-lsp-ruff",
+    "pyls-memestra",
     "pytest",
     "pytest-cov",
     "pytest-order",
+    "rope",
+    "ruff==0.11.*",
 ]
 
 docs = [
@@ -44,7 +48,7 @@ kupferbootstrap_wrapper_su_helper = "kupferbootstrap.wrapper.su_helper:kupferboo
 "*" = ["version.txt"]
 
 [build-system]
-requires = [ "setuptools>=41", "wheel", "setuptools-git-versioning<2", ]
+requires = ["setuptools>=41", "wheel", "setuptools-git-versioning<2",]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools-git-versioning]
@@ -55,3 +59,6 @@ enabled = true
 "markers" = [
     "integration: run integration tests",
 ]
+
+[tool.ruff]
+line-length = 79
