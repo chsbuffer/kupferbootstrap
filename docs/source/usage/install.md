@@ -29,29 +29,29 @@
 
 5. Install:
    ```sh
-   make install
+   pipx install -e .
    ```
    this will effectively run the following steps for you:
 
-   5.1. Create a venv:
+   1. Create a venv:
       ```sh
       python -m venv venv
       ```
-   5.1. Install `kupferbootstrap`:
+   2. Install `kupferbootstrap` in editable mode:
       ```sh
       venv/bin/pip3 install -e .
       ```
-   5.1. Symlink `kupferbootstrap` into your `$PATH`:
+   3. Symlink `kupferbootstrap` into your `$PATH`:
       ```sh
       sudo ln -s "$(pwd)/venv/bin/kupferbootstrap" ~/.local/bin/
       ```
 
    ```{Hint}
-   You can override the path and name that the kupferboostrap script file is symlinked to like so.
-
-   Just make sure the destination directory is in your `$PATH`!
-
+   For ease of use, we recommend aliasing `kupferbootstrap` to `kbs`.
+   
+   E.g. by putting the following into your `~/.bashrc`:
+   
    ```sh
-   make INSTALL_TARGET=~/.local/bin/my_custom_kbs_alias install
+   alias kbs=kupferbootstrap
    ```
 1. You should now be able to run `kupferbootstrap --help`!
