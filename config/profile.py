@@ -5,7 +5,7 @@ from typing import Optional
 
 from .scheme import Profile, SparseProfile
 
-PROFILE_DEFAULTS_DICT = {
+PROFILE_DEFAULTS_DICT: dict[str, str | int | None | list[str]] = {
     'parent': '',
     'device': '',
     'flavour': '',
