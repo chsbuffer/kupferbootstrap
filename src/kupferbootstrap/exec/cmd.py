@@ -3,7 +3,9 @@ import os
 import pwd
 import subprocess
 
-from subprocess import CompletedProcess  # make it easy for users of this module
+from subprocess import (
+    CompletedProcess,
+)  # make it easy for users of this module
 from shlex import quote as shell_quote
 from typing import IO, Optional, Union
 
@@ -20,15 +22,19 @@ ELEVATION_METHOD_DEFAULT = "sudo"
 
 ELEVATION_METHODS: dict[ElevationMethod, list[str]] = {
     "none": [],
-    "sudo": ['sudo', '--'],
+    "sudo": ["sudo", "--"],
 }
 
 
 def generate_env_cmd(env: dict[str, str]):
-    return ['/usr/bin/env'] + [f'{key}={value}' for key, value in env.items()]
+    return ["/usr/bin/env"] + [f"{key}={value}" for key, value in env.items()]
 
 
-def flatten_shell_script(script: Union[list[str], str], shell_quote_items: bool = False, wrap_in_shell_quote=False) -> str:
+def flatten_shell_script(
+    script: Union[list[str], str],
+    shell_quote_items: bool = False,
+    wrap_in_shell_quote=False,
+) -> str:
     """
     takes a shell-script and returns a flattened string for consumption with `sh -c`.
 
@@ -41,21 +47,33 @@ def flatten_shell_script(script: Union[list[str], str], shell_quote_items: bool 
         if shell_quote_items:
             cmds = [shell_quote(i) for i in cmds]
         else:
-            cmds = [(i if i != '' else '""') for i in cmds]
+            cmds = [(i if i != "" else '""') for i in cmds]
         script = " ".join(cmds)
     if wrap_in_shell_quote:
         script = shell_quote(script)
     return script
 
 
-def wrap_in_bash(cmd: Union[list[str], str], flatten_result=True) -> Union[str, list[str]]:
-    res: Union[str, list[str]] = ['/bin/bash', '-c', flatten_shell_script(cmd, shell_quote_items=False, wrap_in_shell_quote=False)]
+def wrap_in_bash(
+    cmd: Union[list[str], str], flatten_result=True
+) -> Union[str, list[str]]:
+    res: Union[str, list[str]] = [
+        "/bin/bash",
+        "-c",
+        flatten_shell_script(
+            cmd, shell_quote_items=False, wrap_in_shell_quote=False
+        ),
+    ]
     if flatten_result:
-        res = flatten_shell_script(res, shell_quote_items=True, wrap_in_shell_quote=False)
+        res = flatten_shell_script(
+            res, shell_quote_items=True, wrap_in_shell_quote=False
+        )
     return res
 
 
-def generate_cmd_elevated(cmd: Union[list[str], str], elevation_method: ElevationMethod):
+def generate_cmd_elevated(
+    cmd: Union[list[str], str], elevation_method: ElevationMethod
+):
     "wraps `cmd` in the necessary commands to escalate, e.g. `['sudo', '--', cmd]`."
     if isinstance(cmd, str):
         cmd = wrap_in_bash(cmd, flatten_result=False)
@@ -79,10 +97,21 @@ def generate_cmd_su(
     """
     current_uid = os.getuid()
     if pwd.getpwuid(current_uid).pw_name != switch_user or force_su:
-        if switch_user != 'root' or force_su:
-            cmd = ['/bin/su', switch_user, '-s', '/bin/bash', '-c', flatten_shell_script(cmd, shell_quote_items=True)]
-        if current_uid != 0 or force_elevate:  # in order to use `/bin/su`, we have to be root first.
-            cmd = generate_cmd_elevated(cmd, elevation_method or ELEVATION_METHOD_DEFAULT)
+        if switch_user != "root" or force_su:
+            cmd = [
+                "/bin/su",
+                switch_user,
+                "-s",
+                "/bin/bash",
+                "-c",
+                flatten_shell_script(cmd, shell_quote_items=True),
+            ]
+        if (
+            current_uid != 0 or force_elevate
+        ):  # in order to use `/bin/su`, we have to be root first.
+            cmd = generate_cmd_elevated(
+                cmd, elevation_method or ELEVATION_METHOD_DEFAULT
+            )
 
     return cmd
 
@@ -103,22 +132,26 @@ def run_cmd(
     env_cmd = []
     if env:
         env_cmd = generate_env_cmd(env)
-        kwargs['env'] = env
+        kwargs["env"] = env
     if not attach_tty:
         if (stdout, stderr) == (None, None):
-            kwargs['capture_output'] = capture_output
+            kwargs["capture_output"] = capture_output
         else:
-            for name, fd in {'stdout': stdout, 'stderr': stderr}.items():
+            for name, fd in {"stdout": stdout, "stderr": stderr}.items():
                 if fd is not None:
                     kwargs[name] = fd
     script = flatten_shell_script(script)
     if cwd:
-        kwargs['cwd'] = cwd
+        kwargs["cwd"] = cwd
     wrapped_script: list[str] = wrap_in_bash(script, flatten_result=False)  # type: ignore
     cmd = env_cmd + wrapped_script
     if switch_user:
-        cmd = generate_cmd_su(cmd, switch_user, elevation_method=elevation_method)
-    logging.debug(f'Running cmd: "{cmd}"' + (f' (path: {repr(cwd)})' if cwd else ''))
+        cmd = generate_cmd_su(
+            cmd, switch_user, elevation_method=elevation_method
+        )
+    logging.debug(
+        f'Running cmd: "{cmd}"' + (f" (path: {repr(cwd)})" if cwd else "")
+    )
     if attach_tty:
         return subprocess.call(cmd, **kwargs)
     else:
@@ -126,9 +159,9 @@ def run_cmd(
 
 
 def run_root_cmd(*kargs, **kwargs):
-    kwargs['switch_user'] = 'root'
+    kwargs["switch_user"] = "root"
     return run_cmd(*kargs, **kwargs)
 
 
 def elevation_noop(**kwargs):
-    run_root_cmd('/bin/true', **kwargs)
+    run_root_cmd("/bin/true", **kwargs)

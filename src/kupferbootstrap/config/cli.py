@@ -6,24 +6,33 @@ from typing import Any, Callable, Iterable, Mapping, Optional, Union
 
 from kupferbootstrap.devices.device import get_devices, sanitize_device_name
 from kupferbootstrap.flavours.flavour import get_flavours
-from kupferbootstrap.utils import color_bold, colors_supported, color_mark_selected
+from kupferbootstrap.utils import (
+    color_bold,
+    colors_supported,
+    color_mark_selected,
+)
 from kupferbootstrap.wrapper import execute_without_exit
 
 from .scheme import Profile
-from .profile import PROFILE_EMPTY, PROFILE_DEFAULTS, resolve_profile_attr, SparseProfile
+from .profile import (
+    PROFILE_EMPTY,
+    PROFILE_DEFAULTS,
+    resolve_profile_attr,
+    SparseProfile,
+)
 from .state import config, CONFIG_DEFAULTS, CONFIG_SECTIONS, merge_configs
 
 
-def list_to_comma_str(str_list: list[str], default='') -> str:
+def list_to_comma_str(str_list: list[str], default="") -> str:
     if str_list is None:
         return default
-    return ','.join(str_list)
+    return ",".join(str_list)
 
 
 def comma_str_to_list(s: str, default=None) -> list[str]:
     if not s:
         return default
-    return [a for a in s.split(',') if a]
+    return [a for a in s.split(",") if a]
 
 
 def prompt_config(
@@ -44,19 +53,23 @@ def prompt_config(
     def true_or_zero(to_check) -> bool:
         """returns true if the value is truthy or int(0)"""
         zero = 0  # compiler complains about 'is with literal' otherwise
-        return to_check or to_check is zero  # can't do == due to boolean<->int casting
+        return (
+            to_check or to_check is zero
+        )  # can't do == due to boolean<->int casting
 
     if type(None) == field_type:
         field_type = str
 
     if field_type == dict:
-        raise Exception('Dictionaries not supported by config_prompt, this is likely a bug in kupferbootstrap')
+        raise Exception(
+            "Dictionaries not supported by config_prompt, this is likely a bug in kupferbootstrap"
+        )
     elif field_type == list:
         default = list_to_comma_str(default)
         value_conv = comma_str_to_list
     else:
         value_conv = None
-        default = '' if default is None else default
+        default = "" if default is None else default
 
     if bold:
         text = click.style(text, bold=True)
@@ -69,7 +82,9 @@ def prompt_config(
         show_default=True,
         show_choices=show_choices,
     )  # type: ignore
-    changed = result != (original_default if field_type == list else default) and (true_or_zero(default) or true_or_zero(result))
+    changed = result != (
+        original_default if field_type == list else default
+    ) and (true_or_zero(default) or true_or_zero(result))
     if changed and echo_changes:
         print(f'value changed: "{text}" = "{result}"')
     return result, changed
@@ -82,33 +97,37 @@ def prompt_profile(
     no_parse: bool = True,
 ) -> tuple[Profile, bool]:
     """Prompts the user for every field in `defaults`. Set values to None for an empty profile."""
-    PARSEABLE_FIELDS = ['device', 'flavour']
+    PARSEABLE_FIELDS = ["device", "flavour"]
     profile: Any = PROFILE_EMPTY | defaults
-    if name == 'current':
+    if name == "current":
         raise Exception("profile name 'current' not allowed")
     # don't use get_profile() here because we need the sparse profile
     if name in config.file.profiles:
         logging.debug(f"Merging with existing profile config for {name}")
         profile |= config.file.profiles[name]
     elif create:
-        logging.info(f"Profile {name} doesn't exist yet, creating new profile.")
+        logging.info(
+            f"Profile {name} doesn't exist yet, creating new profile."
+        )
     else:
         raise Exception(f'Unknown profile "{name}"')
     logging.info(f'Configuring profile "{name}"')
     changed = False
     for key, current in profile.items():
         current = profile[key]
-        text = f'profiles.{name}.{key}'
+        text = f"profiles.{name}.{key}"
         if not no_parse and key in PARSEABLE_FIELDS:
             parse_prompt = None
             sanitize_func = None
-            if key == 'device':
+            if key == "device":
                 parse_prompt = prompt_profile_device
                 sanitize_func = sanitize_device_name
-            elif key == 'flavour':
+            elif key == "flavour":
                 parse_prompt = prompt_profile_flavour
             else:
-                raise Exception(f'config: Unhandled parseable field {key}, this is a bug in kupferbootstrap.')
+                raise Exception(
+                    f"config: Unhandled parseable field {key}, this is a bug in kupferbootstrap."
+                )
             result, _changed = parse_prompt(
                 current=current,
                 profile_name=name,
@@ -117,17 +136,32 @@ def prompt_profile(
                 sanitize_func=sanitize_func,
             )  # type: ignore
         else:
-            result, _changed = prompt_config(text=text, default=current, field_type=type(PROFILE_DEFAULTS[key]))  # type: ignore
+            result, _changed = prompt_config(
+                text=text,
+                default=current,
+                field_type=type(PROFILE_DEFAULTS[key]),
+            )  # type: ignore
         if _changed:
             profile[key] = result
             changed = True
     return profile, changed
 
 
-def prompt_choice(current: Optional[Any], key: str, choices: Iterable[Any], allow_none: bool = True, show_choices: bool = False) -> tuple[Any, bool]:
-    choices = list(choices) + ([''] if allow_none else [])
-    res, _ = prompt_config(text=key, default=current, field_type=click.Choice(choices), show_choices=show_choices)
-    if allow_none and res == '':
+def prompt_choice(
+    current: Optional[Any],
+    key: str,
+    choices: Iterable[Any],
+    allow_none: bool = True,
+    show_choices: bool = False,
+) -> tuple[Any, bool]:
+    choices = list(choices) + ([""] if allow_none else [])
+    res, _ = prompt_config(
+        text=key,
+        default=current,
+        field_type=click.Choice(choices),
+        show_choices=show_choices,
+    )
+    if allow_none and res == "":
         res = None
     return res, res != current
 
@@ -152,49 +186,74 @@ def prompt_wrappable(
 ) -> tuple[str, bool]:
     use_colors = colors_supported(use_colors)
 
-    print(color_bold(f"Pick your {attr_name}!\nThese are the available choices:", use_colors=use_colors))
+    print(
+        color_bold(
+            f"Pick your {attr_name}!\nThese are the available choices:",
+            use_colors=use_colors,
+        )
+    )
     items = execute_without_exit(native_cmd, cli_cmd)
     if items is None:
-        logging.warning("(wrapper mode, input for this field will not be checked for correctness)")
-        return prompt_config(text=f'profiles.{profile_name}.{attr_name}', default=current)
-    selected, inherited_from = resolve_profile_field(current, profile_name, attr_name, sparse_profiles)
+        logging.warning(
+            "(wrapper mode, input for this field will not be checked for correctness)"
+        )
+        return prompt_config(
+            text=f"profiles.{profile_name}.{attr_name}", default=current
+        )
+    selected, inherited_from = resolve_profile_field(
+        current, profile_name, attr_name, sparse_profiles
+    )
     if selected and sanitize_func:
         selected = sanitize_func(selected)
     for key in sorted(items.keys()):
         text = items[key].nice_str(newlines=True, colors=use_colors)
         if key == selected:
             text = color_mark_selected(text, profile_name, inherited_from)
-        print(text + '\n')
-    return prompt_choice(current, f'profiles.{profile_name}.{attr_name}', items.keys())
+        print(text + "\n")
+    return prompt_choice(
+        current, f"profiles.{profile_name}.{attr_name}", items.keys()
+    )
 
 
 def prompt_profile_device(*kargs, **kwargs) -> tuple[str, bool]:
-    return prompt_wrappable('device', get_devices, ['devices'], *kargs, **kwargs)
+    return prompt_wrappable(
+        "device", get_devices, ["devices"], *kargs, **kwargs
+    )
 
 
 def prompt_profile_flavour(*kargs, **kwargs) -> tuple[str, bool]:
-    return prompt_wrappable('flavour', get_flavours, ['flavours'], *kargs, **kwargs)
+    return prompt_wrappable(
+        "flavour", get_flavours, ["flavours"], *kargs, **kwargs
+    )
 
 
-def config_dot_name_get(name: str, config: dict[str, Any], prefix: str = '') -> Any:
+def config_dot_name_get(
+    name: str, config: dict[str, Any], prefix: str = ""
+) -> Any:
     if not isinstance(config, dict):
-        raise Exception(f"Couldn't resolve config name: passed config is not a dict: {repr(config)}")
-    split_name = name.split('.')
+        raise Exception(
+            f"Couldn't resolve config name: passed config is not a dict: {repr(config)}"
+        )
+    split_name = name.split(".")
     name = split_name[0]
     if name not in config:
-        raise Exception(f"Couldn't resolve config name: key {prefix + name} not found")
+        raise Exception(
+            f"Couldn't resolve config name: key {prefix + name} not found"
+        )
     value = config[name]
     if len(split_name) == 1:
         return value
     else:
-        rest_name = '.'.join(split_name[1:])
-        return config_dot_name_get(name=rest_name, config=value, prefix=prefix + name + '.')
+        rest_name = ".".join(split_name[1:])
+        return config_dot_name_get(
+            name=rest_name, config=value, prefix=prefix + name + "."
+        )
 
 
 def config_dot_name_set(name: str, value: Any, config: dict[str, Any]):
-    split_name = name.split('.')
+    split_name = name.split(".")
     if len(split_name) > 1:
-        config = config_dot_name_get('.'.join(split_name[:-1]), config)
+        config = config_dot_name_get(".".join(split_name[:-1]), config)
     config[split_name[-1]] = value
 
 
@@ -206,11 +265,17 @@ def prompt_for_save(retry_ctx: Optional[click.Context] = None):
     False will still be returned as the retry is expected to either save, perform another retry or arbort.
     """
     from ..wrapper import is_wrapped
-    if click.confirm(f'Do you want to save your changes to {config.runtime.config_file}?', default=True):
+
+    if click.confirm(
+        f"Do you want to save your changes to {config.runtime.config_file}?",
+        default=True,
+    ):
         if is_wrapped():
-            logging.warning("Writing to config file inside wrapper."
-                            "This is pointless and probably a bug."
-                            "Your host config file will not be modified.")
+            logging.warning(
+                "Writing to config file inside wrapper."
+                "This is pointless and probably a bug."
+                "Your host config file will not be modified."
+            )
         return True
     if retry_ctx:
         if click.confirm('Retry? ("n" to quit without saving)', default=True):
@@ -219,32 +284,40 @@ def prompt_for_save(retry_ctx: Optional[click.Context] = None):
 
 
 config_option = click.option(
-    '-C',
-    '--config',
-    'config_file',
-    help='Override path to config file',
+    "-C",
+    "--config",
+    "config_file",
+    help="Override path to config file",
 )
 
 
-@click.group(name='config')
+@click.group(name="config")
 def cmd_config():
     """Manage the configuration and -profiles"""
 
 
-noninteractive_flag = click.option('-N', '--non-interactive', is_flag=True)
-noop_flag = click.option('--noop', '-n', help="Don't write changes to file", is_flag=True)
-noparse_flag = click.option('--no-parse', help="Don't search PKGBUILDs for devices and flavours", is_flag=True)
+noninteractive_flag = click.option("-N", "--non-interactive", is_flag=True)
+noop_flag = click.option(
+    "--noop", "-n", help="Don't write changes to file", is_flag=True
+)
+noparse_flag = click.option(
+    "--no-parse",
+    help="Don't search PKGBUILDs for devices and flavours",
+    is_flag=True,
+)
 
-CONFIG_MSG = ("Leave fields empty to leave them at their currently displayed value.")
+CONFIG_MSG = (
+    "Leave fields empty to leave them at their currently displayed value."
+)
 
 
-@cmd_config.command(name='init')
+@cmd_config.command(name="init")
 @noninteractive_flag
 @noop_flag
 @noparse_flag
 @click.option(
-    '--sections',
-    '-s',
+    "--sections",
+    "-s",
     multiple=True,
     type=click.Choice(CONFIG_SECTIONS),
     default=CONFIG_SECTIONS,
@@ -264,14 +337,18 @@ def cmd_config_init(
         results: dict[str, dict] = {}
         for section in sections:
             if section not in CONFIG_SECTIONS:
-                raise Exception(f'Unknown section: {section}')
-            if section == 'profiles':
+                raise Exception(f"Unknown section: {section}")
+            if section == "profiles":
                 continue
 
             results[section] = {}
             for key, current in config.file[section].items():
-                text = f'{section}.{key}'
-                result, changed = prompt_config(text=text, default=current, field_type=type(CONFIG_DEFAULTS[section][key]))
+                text = f"{section}.{key}"
+                result, changed = prompt_config(
+                    text=text,
+                    default=current,
+                    field_type=type(CONFIG_DEFAULTS[section][key]),
+                )
                 if changed:
                     results[section][key] = result
 
@@ -282,11 +359,19 @@ def cmd_config_init(
                 config.write()
             else:
                 return
-        if 'profiles' in sections:
+        if "profiles" in sections:
             print("Configuring profiles")
-            current_profile = 'default' if 'current' not in config.file.profiles else config.file.profiles.current
-            new_current, _ = prompt_config('profiles.current', default=current_profile, field_type=str)
-            profile, changed = prompt_profile(new_current, create=True, no_parse=no_parse)
+            current_profile = (
+                "default"
+                if "current" not in config.file.profiles
+                else config.file.profiles.current
+            )
+            new_current, _ = prompt_config(
+                "profiles.current", default=current_profile, field_type=str
+            )
+            profile, changed = prompt_profile(
+                new_current, create=True, no_parse=no_parse
+            )
             config.update_profile(new_current, profile)
         if not noop:
             if not prompt_for_save(ctx):
@@ -295,16 +380,24 @@ def cmd_config_init(
     if not noop:
         config.write()
     else:
-        logging.info(f'--noop passed, not writing to {config.runtime.config_file}!')
+        logging.info(
+            f"--noop passed, not writing to {config.runtime.config_file}!"
+        )
 
 
-@cmd_config.command(name='set')
+@cmd_config.command(name="set")
 @noninteractive_flag
 @noop_flag
 @noparse_flag
-@click.argument('key_vals', nargs=-1)
+@click.argument("key_vals", nargs=-1)
 @click.pass_context
-def cmd_config_set(ctx, key_vals: list[str], non_interactive: bool = False, noop: bool = False, no_parse: bool = False):
+def cmd_config_set(
+    ctx,
+    key_vals: list[str],
+    non_interactive: bool = False,
+    noop: bool = False,
+    no_parse: bool = False,
+):
     """
     Set config entries. Pass entries as `key=value` pairs, with keys as dot-separated identifiers,
     like `build.clean_mode=false` or alternatively just keys to get prompted if run interactively.
@@ -313,7 +406,7 @@ def cmd_config_set(ctx, key_vals: list[str], non_interactive: bool = False, noop
     logging.info(CONFIG_MSG)
     config_copy = deepcopy(config.file)
     for pair in key_vals:
-        split_pair = pair.split('=')
+        split_pair = pair.split("=")
         if len(split_pair) == 2:
             key: str = split_pair[0]
             value: Any = split_pair[1]
@@ -326,12 +419,20 @@ def cmd_config_set(ctx, key_vals: list[str], non_interactive: bool = False, noop
             key = split_pair[0]
             value_type = type(config_dot_name_get(key, CONFIG_DEFAULTS))
             current = config_dot_name_get(key, config.file)
-            value, _ = prompt_config(text=key, default=current, field_type=value_type, echo_changes=False)
+            value, _ = prompt_config(
+                text=key,
+                default=current,
+                field_type=value_type,
+                echo_changes=False,
+            )
         else:
             raise Exception(f'Invalid key=value pair "{pair}"')
-        print('%s = %s' % (key, value))
+        print("%s = %s" % (key, value))
         config_dot_name_set(key, value, config_copy)
-        if merge_configs(config_copy, warn_missing_defaultprofile=False) != config_copy:
+        if (
+            merge_configs(config_copy, warn_missing_defaultprofile=False)
+            != config_copy
+        ):
             raise Exception('Config "{key}" = "{value}" failed to evaluate')
     if not noop:
         if not non_interactive and not prompt_for_save(ctx):
@@ -340,8 +441,8 @@ def cmd_config_set(ctx, key_vals: list[str], non_interactive: bool = False, noop
         config.write()
 
 
-@cmd_config.command(name='get')
-@click.argument('keys', nargs=-1)
+@cmd_config.command(name="get")
+@click.argument("keys", nargs=-1)
 def cmd_config_get(keys: list[str]):
     """Get config entries.
     Get entries for keys passed as dot-separated identifiers, like `build.clean_mode`"""
@@ -349,24 +450,30 @@ def cmd_config_get(keys: list[str]):
         print(config_dot_name_get(keys[0], config.file))
         return
     for key in keys:
-        print('%s = %s' % (key, config_dot_name_get(key, config.file)))
+        print("%s = %s" % (key, config_dot_name_get(key, config.file)))
 
 
-@cmd_config.group(name='profile')
+@cmd_config.group(name="profile")
 def cmd_profile():
     """Manage config profiles"""
 
 
-@cmd_profile.command(name='init')
+@cmd_profile.command(name="init")
 @noninteractive_flag
 @noop_flag
 @noparse_flag
-@click.argument('name', required=False)
+@click.argument("name", required=False)
 @click.pass_context
-def cmd_profile_init(ctx, name: Optional[str] = None, non_interactive: bool = False, noop: bool = False, no_parse: bool = False):
+def cmd_profile_init(
+    ctx,
+    name: Optional[str] = None,
+    non_interactive: bool = False,
+    noop: bool = False,
+    no_parse: bool = False,
+):
     """Create or edit a profile"""
     profile = deepcopy(PROFILE_EMPTY)
-    if name == 'current':
+    if name == "current":
         raise Exception("profile name 'current' not allowed")
     logging.info(CONFIG_MSG)
     name = name or config.file.profiles.current
@@ -374,7 +481,9 @@ def cmd_profile_init(ctx, name: Optional[str] = None, non_interactive: bool = Fa
         profile |= config.file.profiles[name]
 
     if not non_interactive:
-        profile, _changed = prompt_profile(name, create=True, no_parse=no_parse)
+        profile, _changed = prompt_profile(
+            name, create=True, no_parse=no_parse
+        )
 
     config.update_profile(name, profile)
     if not noop:
@@ -384,4 +493,6 @@ def cmd_profile_init(ctx, name: Optional[str] = None, non_interactive: bool = Fa
 
         config.write()
     else:
-        logging.info(f'--noop passed, not writing to {config.runtime.config_file}!')
+        logging.info(
+            f"--noop passed, not writing to {config.runtime.config_file}!"
+        )

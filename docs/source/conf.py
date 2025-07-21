@@ -3,22 +3,22 @@ import os
 from sphinx.config import getenv
 from kupferbootstrap.utils import git
 
-#sys.path.insert(0, os.path.abspath('../..'))
+# sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
-    'sphinx_click',
+    "sphinx_click",
     "sphinx.ext.autodoc",
-    'sphinx.ext.autosummary',
+    "sphinx.ext.autosummary",
     "sphinx.ext.linkcode",
-    'myst_parser'
+    "myst_parser",
 ]
 myst_all_links_external = True
-templates_path = ['templates']
-project = 'Kupfer👢strap'
-html_title = 'Kupferbootstrap'
-html_theme = 'furo'
-html_static_path = ['static']
-html_css_files = ['kupfer_docs.css']
-html_favicon = 'static/kupfer-white-filled.svg'
+templates_path = ["templates"]
+project = "Kupfer👢strap"
+html_title = "Kupferbootstrap"
+html_theme = "furo"
+html_static_path = ["static"]
+html_css_files = ["kupfer_docs.css"]
+html_favicon = "static/kupfer-white-filled.svg"
 html_theme_options = {
     "globaltoc_maxdepth": 5,
     "globaltoc_collapse": True,
@@ -69,9 +69,13 @@ version = getenv("version") or get_version()
 
 
 def linkcode_resolve(domain, info):
-    if domain != 'py':
+    if domain != "py":
         return None
-    if not info['module']:
+    if not info["module"]:
         return None
-    filename = info['module'].replace('.', '/')
-    return "%s/-/blob/%s/src/%s.py" % (html_theme_options["source_repository"], version, filename)
+    filename = info["module"].replace(".", "/")
+    return "%s/-/blob/%s/src/%s.py" % (
+        html_theme_options["source_repository"],
+        version,
+        filename,
+    )

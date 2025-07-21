@@ -1,7 +1,10 @@
 from pytest import mark
 from typing import Optional
 
-from kupferbootstrap.version.kbs import get_kbs_version, compare_kbs_version_generic
+from kupferbootstrap.version.kbs import (
+    get_kbs_version,
+    compare_kbs_version_generic,
+)
 from kupferbootstrap.version.compare import VerComp
 
 
@@ -30,5 +33,12 @@ def test_get_kbs_version():
         ("v0.2.2", "v1.0.0", VerComp.RIGHT_NEWER),
     ],
 )
-def test_kbs_version_compare(minimum_ver: str, kbs_ver: str, expected: Optional[VerComp]):
-    assert compare_kbs_version_generic(kbs_version=kbs_ver, minimum_ver=minimum_ver) == expected
+def test_kbs_version_compare(
+    minimum_ver: str, kbs_ver: str, expected: Optional[VerComp]
+):
+    assert (
+        compare_kbs_version_generic(
+            kbs_version=kbs_ver, minimum_ver=minimum_ver
+        )
+        == expected
+    )

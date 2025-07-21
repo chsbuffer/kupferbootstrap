@@ -8,16 +8,20 @@ import subprocess
 from typing import Any, ClassVar, Optional
 
 from kupferbootstrap.config.state import config
-from kupferbootstrap.constants import MAKEPKG_CMD, SRCINFO_FILE, SRCINFO_METADATA_FILE, SRCINFO_INITIALISED_FILE
+from kupferbootstrap.constants import (
+    MAKEPKG_CMD,
+    SRCINFO_FILE,
+    SRCINFO_METADATA_FILE,
+    SRCINFO_INITIALISED_FILE,
+)
 from kupferbootstrap.dictscheme import DictScheme
 from kupferbootstrap.exec.cmd import run_cmd
 from kupferbootstrap.utils import sha256sum
 
-SRCINFO_CHECKSUM_FILES = ['PKGBUILD', SRCINFO_FILE]
+SRCINFO_CHECKSUM_FILES = ["PKGBUILD", SRCINFO_FILE]
 
 
 class JsonFile(DictScheme):
-
     _filename: ClassVar[str]
     _relative_path: str
     _strip_hidden: ClassVar[bool] = True
@@ -28,19 +32,21 @@ class JsonFile(DictScheme):
         return json.dumps(self.toDict(), indent=2)
 
     def write(self):
-        'Write the filtered json representation to disk'
-        filepath = os.path.join(config.get_path('pkgbuilds'), self._relative_path, self._filename)
-        logging.debug(f'{self._relative_path}: writing {self._filename}')
-        with open(filepath, 'w') as fd:
+        "Write the filtered json representation to disk"
+        filepath = os.path.join(
+            config.get_path("pkgbuilds"), self._relative_path, self._filename
+        )
+        logging.debug(f"{self._relative_path}: writing {self._filename}")
+        with open(filepath, "w") as fd:
             fd.write(self.toJSON())
 
     @classmethod
     def _read_file(cls, relative_path) -> Optional[dict]:
-        pkgdir = os.path.join(config.get_path('pkgbuilds'), relative_path)
+        pkgdir = os.path.join(config.get_path("pkgbuilds"), relative_path)
         filepath = os.path.join(pkgdir, cls._filename)
         if not os.path.exists(filepath):
             raise Exception(f"{relative_path}: {cls._filename} doesn't exist")
-        with open(filepath, 'r') as fd:
+        with open(filepath, "r") as fd:
             contents = json.load(fd)
         return contents
 
@@ -53,7 +59,6 @@ class JsonFile(DictScheme):
 
 
 class SrcInitialisedFile(JsonFile):
-
     PKGBUILD: str
     _filename: ClassVar[str] = SRCINFO_INITIALISED_FILE
 
@@ -69,14 +74,13 @@ class SrcInitialisedFile(JsonFile):
 
 
 srcinfo_meta_defaults = {
-    'build_mode': None,
+    "build_mode": None,
     "build_nodeps": None,
     "build_crossdirect": None,
 }
 
 
 class SrcinfoMetaFile(JsonFile):
-
     checksums: dict[str, str]
     build_mode: Optional[str]
     build_nodeps: Optional[bool]
@@ -87,37 +91,52 @@ class SrcinfoMetaFile(JsonFile):
 
     @staticmethod
     def parse_existing(relative_pkg_dir: str) -> SrcinfoMetaFile:
-        'tries to parse the srcinfo_meta.json file in the specified pkgbuild dir'
+        "tries to parse the srcinfo_meta.json file in the specified pkgbuild dir"
         metadata_raw = SrcinfoMetaFile._read_file(relative_pkg_dir)
-        return SrcinfoMetaFile.fromDict(metadata_raw | {
-            '_relative_path': relative_pkg_dir,
-            '_changed': False,
-        })
+        return SrcinfoMetaFile.fromDict(
+            metadata_raw
+            | {
+                "_relative_path": relative_pkg_dir,
+                "_changed": False,
+            }
+        )
 
     @staticmethod
-    def generate_new(relative_pkg_dir: str, write: bool = True) -> tuple[SrcinfoMetaFile, list[str]]:
-        'Creates a new SrcinfoMetaFile object with checksums, creating a SRCINFO as necessary'
-        s = SrcinfoMetaFile({
-            '_relative_path': relative_pkg_dir,
-            '_changed': True,
-            'checksums': {},
-            **srcinfo_meta_defaults,
-        })
+    def generate_new(
+        relative_pkg_dir: str, write: bool = True
+    ) -> tuple[SrcinfoMetaFile, list[str]]:
+        "Creates a new SrcinfoMetaFile object with checksums, creating a SRCINFO as necessary"
+        s = SrcinfoMetaFile(
+            {
+                "_relative_path": relative_pkg_dir,
+                "_changed": True,
+                "checksums": {},
+                **srcinfo_meta_defaults,
+            }
+        )
         return s, s.refresh_all()
 
     @staticmethod
-    def handle_directory(relative_pkg_dir: str, force_refresh: bool = False, write: bool = True) -> tuple[SrcinfoMetaFile, list[str]]:
+    def handle_directory(
+        relative_pkg_dir: str, force_refresh: bool = False, write: bool = True
+    ) -> tuple[SrcinfoMetaFile, list[str]]:
         lines = None
         # try reading existing cache metadata
         try:
             metadata = SrcinfoMetaFile.parse_existing(relative_pkg_dir)
         except Exception as ex:
-            logging.debug(f"{relative_pkg_dir}: something went wrong parsing json from {SrcinfoMetaFile._filename},"
-                          f"running `makepkg --printsrcinfo` instead instead: {ex}")
+            logging.debug(
+                f"{relative_pkg_dir}: something went wrong parsing json from {SrcinfoMetaFile._filename},"
+                f"running `makepkg --printsrcinfo` instead instead: {ex}"
+            )
             return SrcinfoMetaFile.generate_new(relative_pkg_dir, write=write)
         # if for whatever reason only the SRCINFO got deleted but PKGBUILD has not been modified,
         # we do want the checksum verification to work. So regenerate SRCINFO first.
-        if not os.path.exists(os.path.join(config.get_path('pkgbuilds'), relative_pkg_dir, SRCINFO_FILE)):
+        if not os.path.exists(
+            os.path.join(
+                config.get_path("pkgbuilds"), relative_pkg_dir, SRCINFO_FILE
+            )
+        ):
             lines = metadata.refresh_srcinfo()
         if not metadata.validate_checksums():
             # metadata is invalid
@@ -125,7 +144,9 @@ class SrcinfoMetaFile(JsonFile):
         # metadata is valid
         assert metadata
         if not force_refresh:
-            logging.debug(f'{metadata._relative_path}: srcinfo checksums match!')
+            logging.debug(
+                f"{metadata._relative_path}: srcinfo checksums match!"
+            )
             lines = lines or metadata.read_srcinfo_file()
             for build_field in srcinfo_meta_defaults.keys():
                 if build_field not in metadata:
@@ -138,11 +159,16 @@ class SrcinfoMetaFile(JsonFile):
         return metadata, lines
 
     def refresh_checksums(self):
-        pkgdir = os.path.join(config.get_path('pkgbuilds'), self._relative_path)
-        if 'checksums' not in self:
-            self['checksums'] = None
+        pkgdir = os.path.join(
+            config.get_path("pkgbuilds"), self._relative_path
+        )
+        if "checksums" not in self:
+            self["checksums"] = None
         checksums_old = self.checksums.copy()
-        checksums = {p: sha256sum(os.path.join(pkgdir, p)) for p in SRCINFO_CHECKSUM_FILES}
+        checksums = {
+            p: sha256sum(os.path.join(pkgdir, p))
+            for p in SRCINFO_CHECKSUM_FILES
+        }
         if self.checksums is None:
             self.checksums = checksums
         else:
@@ -153,43 +179,57 @@ class SrcinfoMetaFile(JsonFile):
 
     def refresh_build_fields(self):
         self.update(srcinfo_meta_defaults)
-        with open(os.path.join(config.get_path('pkgbuilds'), self._relative_path, 'PKGBUILD'), 'r') as file:
-            lines = file.read().split('\n')
+        with open(
+            os.path.join(
+                config.get_path("pkgbuilds"), self._relative_path, "PKGBUILD"
+            ),
+            "r",
+        ) as file:
+            lines = file.read().split("\n")
         for line in lines:
-            if not line.startswith('_') or '=' not in line:
+            if not line.startswith("_") or "=" not in line:
                 continue
-            key, val = line.split('=', 1)
+            key, val = line.split("=", 1)
             val = val.strip("\"'")
-            if key == '_mode':
+            if key == "_mode":
                 self.build_mode = val
-            elif key == '_nodeps':
-                self.build_nodeps = val.lower() == 'true'
-            elif key == '_crossdirect':
-                self.build_crossdirect = val.lower() == 'true'
+            elif key == "_nodeps":
+                self.build_nodeps = val.lower() == "true"
+            elif key == "_crossdirect":
+                self.build_crossdirect = val.lower() == "true"
             else:
                 continue
 
     def refresh_srcinfo(self) -> list[str]:
-        'Run `makepkg --printsrcinfo` to create an updated SRCINFO file and return the lines from it'
+        "Run `makepkg --printsrcinfo` to create an updated SRCINFO file and return the lines from it"
         logging.info(f"{self._relative_path}: Generating SRCINFO with makepkg")
-        pkgdir = os.path.join(config.get_path('pkgbuilds'), self._relative_path)
+        pkgdir = os.path.join(
+            config.get_path("pkgbuilds"), self._relative_path
+        )
         srcinfo_file = os.path.join(pkgdir, SRCINFO_FILE)
         sproc = run_cmd(
-            MAKEPKG_CMD + ['--printsrcinfo'],
+            MAKEPKG_CMD + ["--printsrcinfo"],
             cwd=pkgdir,
             stdout=subprocess.PIPE,
         )
-        assert (isinstance(sproc, subprocess.CompletedProcess))
+        assert isinstance(sproc, subprocess.CompletedProcess)
         if sproc.returncode:
-            raise Exception(f"{self._relative_path}: makepkg failed to parse the PKGBUILD! Error code: {sproc.returncode}")
-        output = sproc.stdout.decode('utf-8')
-        with open(srcinfo_file, 'w') as srcinfo_fd:
+            raise Exception(
+                f"{self._relative_path}: makepkg failed to parse the PKGBUILD! Error code: {sproc.returncode}"
+            )
+        output = sproc.stdout.decode("utf-8")
+        with open(srcinfo_file, "w") as srcinfo_fd:
             srcinfo_fd.write(output)
-        return output.split('\n')
+        return output.split("\n")
 
     def read_srcinfo_file(self) -> list[str]:
-        with open(os.path.join(config.get_path('pkgbuilds'), self._relative_path, SRCINFO_FILE), 'r') as srcinfo_fd:
-            lines = srcinfo_fd.read().split('\n')
+        with open(
+            os.path.join(
+                config.get_path("pkgbuilds"), self._relative_path, SRCINFO_FILE
+            ),
+            "r",
+        ) as srcinfo_fd:
+            lines = srcinfo_fd.read().split("\n")
         return lines
 
     def refresh_all(self, write: bool = True) -> list[str]:
@@ -202,20 +242,28 @@ class SrcinfoMetaFile(JsonFile):
 
     def validate_checksums(self) -> bool:
         "Returns True if all checksummed files exist and checksums match"
-        pkgdir = os.path.join(config.get_path('pkgbuilds'), self._relative_path)
+        pkgdir = os.path.join(
+            config.get_path("pkgbuilds"), self._relative_path
+        )
         assert self.checksums
         for filename in SRCINFO_CHECKSUM_FILES:
             if filename not in self.checksums:
-                logging.debug(f"{self._relative_path}: No checksum for {filename} available")
+                logging.debug(
+                    f"{self._relative_path}: No checksum for {filename} available"
+                )
                 return False
             checksum = self.checksums[filename]
             path = os.path.join(pkgdir, filename)
             if not os.path.exists(path):
-                logging.debug(f"{self._relative_path}: can't checksum'{filename}: file doesn't exist")
+                logging.debug(
+                    f"{self._relative_path}: can't checksum'{filename}: file doesn't exist"
+                )
                 return False
             file_sum = sha256sum(path)
             if file_sum != checksum:
-                logging.debug(f'{self._relative_path}: Checksum for file "{filename}" doesn\'t match')
+                logging.debug(
+                    f'{self._relative_path}: Checksum for file "{filename}" doesn\'t match'
+                )
                 return False
         return True
 
@@ -223,18 +271,24 @@ class SrcinfoMetaFile(JsonFile):
         checksum = self.checksums["PKGBUILD"]
         assert checksum
         try:
-            initfile = SrcInitialisedFile(self._relative_path, raise_exception=True)
+            initfile = SrcInitialisedFile(
+                self._relative_path, raise_exception=True
+            )
             if "PKGBUILD" not in initfile:
                 raise Exception("'PKGBUILD' not in parser output")
             initialised_checksum = initfile.PKGBUILD
         except Exception as ex:
-            logging.debug(f"{self._relative_path}: Couldn't read or parse {SRCINFO_INITIALISED_FILE}: {ex}")
+            logging.debug(
+                f"{self._relative_path}: Couldn't read or parse {SRCINFO_INITIALISED_FILE}: {ex}"
+            )
             initialised_checksum = None
         result = checksum == initialised_checksum
         if initialised_checksum and not result:
-            logging.debug("Sources were set up for a different version. "
-                          f"Current PKGBUILD checksum: {checksum}; "
-                          f"Initialised for: {initialised_checksum}")
+            logging.debug(
+                "Sources were set up for a different version. "
+                f"Current PKGBUILD checksum: {checksum}; "
+                f"Initialised for: {initialised_checksum}"
+            )
         return result
 
     def write_src_initialised(self):

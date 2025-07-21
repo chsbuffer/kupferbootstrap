@@ -6,8 +6,12 @@ from kupferbootstrap.distro.repo_config import get_repo_config
 from .kbs import get_kbs_version, compare_kbs_version, compare_kbs_ci_version
 
 
-def _check_kbs_version(*, init_pkgbuilds: bool = False, ci_mode: bool = False):  # quiet helper for other modules
-    repo_config, repo_config_found = get_repo_config(initialize_pkgbuilds=init_pkgbuilds)
+def _check_kbs_version(
+    *, init_pkgbuilds: bool = False, ci_mode: bool = False
+):  # quiet helper for other modules
+    repo_config, repo_config_found = get_repo_config(
+        initialize_pkgbuilds=init_pkgbuilds
+    )
     if not repo_config_found:
         return
     kbs_version = get_kbs_version()
@@ -39,7 +43,13 @@ def cmd_version_show():
 
 
 @cmd_version.command("check")
-@click.option("--ci-mode", "--ci", is_flag=True, default=False, help="Compare local version against required Build-CI version")
+@click.option(
+    "--ci-mode",
+    "--ci",
+    is_flag=True,
+    default=False,
+    help="Compare local version against required Build-CI version",
+)
 def cmd_version_check(ci_mode: bool = False):
     """
     Compare KBS version against minimum version from PKGBUILDs
@@ -56,11 +66,15 @@ def cmd_version_check(ci_mode: bool = False):
         exit(2)
     repo_config, file_found = get_repo_config(initialize_pkgbuilds=False)
     if not file_found:
-        logging.error(f"{REPOS_CONFIG_FILE} not found in PKGBUILDs, can't check KBS version for compatibility")
+        logging.error(
+            f"{REPOS_CONFIG_FILE} not found in PKGBUILDs, can't check KBS version for compatibility"
+        )
         exit(2)
     res = compare_kbs_version(kbs_version=kbs_version, repo_config=repo_config)
     if ci_mode:
-        res_ci = compare_kbs_ci_version(kbs_version=kbs_version, repo_config=repo_config)
+        res_ci = compare_kbs_ci_version(
+            kbs_version=kbs_version, repo_config=repo_config
+        )
         if res_ci is None:
             exit(2)
         if res_ci:
@@ -68,5 +82,7 @@ def cmd_version_check(ci_mode: bool = False):
     if res is None:
         exit(2)
     if res:
-        logging.info(f"{'Success: ' if res_ci else ''}KBS version {kbs_version!r} is new enough for PKGBUILDs!")
+        logging.info(
+            f"{'Success: ' if res_ci else ''}KBS version {kbs_version!r} is new enough for PKGBUILDs!"
+        )
     exit(0 if res and res_ci else 1)

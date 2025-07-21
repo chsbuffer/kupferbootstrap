@@ -1,10 +1,18 @@
 from typing import Optional
 
-from .constants import Arch, CFLAGS_ARCHES, CFLAGS_GENERAL, COMPILE_ARCHES, GCC_HOSTSPECS
+from .constants import (
+    Arch,
+    CFLAGS_ARCHES,
+    CFLAGS_GENERAL,
+    COMPILE_ARCHES,
+    GCC_HOSTSPECS,
+)
 from .config.state import config
 
 
-def generate_makepkg_conf(arch: Arch, cross: bool = False, chroot: Optional[str] = None) -> str:
+def generate_makepkg_conf(
+    arch: Arch, cross: bool = False, chroot: Optional[str] = None
+) -> str:
     """
     Generate a makepkg.conf. For use with crosscompiling, specify `cross=True` and pass as `chroot`
     the relative path inside the native chroot where the foreign chroot will be mounted.
@@ -13,8 +21,10 @@ def generate_makepkg_conf(arch: Arch, cross: bool = False, chroot: Optional[str]
     hostspec = GCC_HOSTSPECS[config.runtime.arch if cross else arch][arch]
     cflags = CFLAGS_ARCHES[arch] + CFLAGS_GENERAL
     if cross and not chroot:
-        raise Exception('Cross-compile makepkg conf requested but no chroot path given: "{chroot}"')
-    conf = f'''
+        raise Exception(
+            'Cross-compile makepkg conf requested but no chroot path given: "{chroot}"'
+        )
+    conf = f"""
 #!/hint/bash
 #
 # /etc/makepkg.conf
@@ -57,7 +67,7 @@ CHOST="{hostspec}"
 # -march (or -mcpu) builds exclusively for an architecture
 # -mtune optimizes for an architecture, but builds for whole processor family
 CPPFLAGS=""
-CFLAGS="{' '.join(cflags)}"
+CFLAGS="{" ".join(cflags)}"
 CXXFLAGS="$CFLAGS -Wp,-D_GLIBCXX_ASSERTIONS"
 LDFLAGS="-Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now"
 #RUSTFLAGS="-C opt-level=2"
@@ -119,11 +129,11 @@ STRIP_SHARED="--strip-unneeded"
 #-- Options to be used when stripping static libraries. See `man strip' for details.
 STRIP_STATIC="--strip-debug"
 #-- Manual (man and info) directories to compress (if zipman is specified)
-MAN_DIRS=({'{usr{,/local}{,/share},opt/*}/{man,info}'})
+MAN_DIRS=({"{usr{,/local}{,/share},opt/*}/{man,info}"})
 #-- Doc directories to remove (if !docs is specified)
-DOC_DIRS=({'usr/{,local/}{,share/}{doc,gtk-doc} opt/*/{doc,gtk-doc}'})
+DOC_DIRS=({"usr/{,local/}{,share/}{doc,gtk-doc} opt/*/{doc,gtk-doc}"})
 #-- Files to be removed from all packages (if purge is specified)
-PURGE_TARGETS=({'usr/{,share}/info/dir .packlist *.pod'})
+PURGE_TARGETS=({"usr/{,share}/info/dir .packlist *.pod"})
 #-- Directory to store source code in for debug packages
 DBGSRCDIR="/usr/src/debug"
 
@@ -173,13 +183,13 @@ SRCEXT='.src.tar.gz'
 #
 #-- Command used to run pacman as root, instead of trying sudo and su
 #PACMAN_AUTH=()
-'''
+"""
     if cross:
         assert chroot
-        chroot = chroot.strip('/')
-        includes = f'-I/usr/{hostspec}/usr/include -I/{chroot}/usr/include'
-        libs = f'-L/usr/{hostspec}/lib -L/{chroot}/usr/lib'
-        conf += f'''
+        chroot = chroot.strip("/")
+        includes = f"-I/usr/{hostspec}/usr/include -I/{chroot}/usr/include"
+        libs = f"-L/usr/{hostspec}/lib -L/{chroot}/usr/lib"
+        conf += f"""
 
 export ARCH="{COMPILE_ARCHES[arch]}"
 export CROSS_COMPILE="{hostspec}-"
@@ -188,7 +198,7 @@ export CXX="{hostspec}-g++ {includes} {libs}"
 export CFLAGS="$CFLAGS {includes}"
 export CXXFLAGS="$CXXFLAGS {includes}"
 export LDFLAGS="$LDFLAGS,-L/usr/{hostspec}/lib,-L/{chroot}/usr/lib,-rpath-link,/usr/{hostspec}/lib,-rpath-link,/{chroot}/usr/lib"
-'''
+"""
 
     return conf
 
@@ -198,8 +208,12 @@ def generate_pacman_conf_body(
     check_space: bool = True,
     in_chroot: bool = True,
 ):
-    pacman_cache = f"{config.get_path('pacman')}/{arch}" if not in_chroot else '/var/cache/pacman/pkg'
-    return f'''
+    pacman_cache = (
+        f"{config.get_path('pacman')}/{arch}"
+        if not in_chroot
+        else "/var/cache/pacman/pkg"
+    )
+    return f"""
 #
 # /etc/pacman.conf
 #
@@ -234,7 +248,7 @@ Architecture = {arch}
 #UseSyslog
 Color
 #NoProgressBar
-{'' if check_space else '#'}CheckSpace
+{"" if check_space else "#"}CheckSpace
 VerbosePkgLists
 ParallelDownloads = {config.file.pacman.parallel_downloads}
 
@@ -267,4 +281,4 @@ LocalFileSigLevel = Optional
 # uncommented to enable the repo.
 #
 
-'''
+"""

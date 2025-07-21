@@ -7,9 +7,17 @@ import os
 from typing import Optional
 
 from kupferbootstrap.config.state import config
-from kupferbootstrap.constants import FLAVOUR_DESCRIPTION_PREFIX, FLAVOUR_INFO_FILE
+from kupferbootstrap.constants import (
+    FLAVOUR_DESCRIPTION_PREFIX,
+    FLAVOUR_INFO_FILE,
+)
 from kupferbootstrap.dictscheme import DictScheme
-from kupferbootstrap.packages.pkgbuild import discover_pkgbuilds, get_pkgbuild_by_name, init_pkgbuilds, Pkgbuild
+from kupferbootstrap.packages.pkgbuild import (
+    discover_pkgbuilds,
+    get_pkgbuild_by_name,
+    init_pkgbuilds,
+    Pkgbuild,
+)
 from kupferbootstrap.utils import color_str
 
 
@@ -18,7 +26,7 @@ class FlavourInfo(DictScheme):
     description: Optional[str]
 
     def __repr__(self):
-        return f'rootfs_size: {self.rootfs_size}'
+        return f"rootfs_size: {self.rootfs_size}"
 
 
 class Flavour(DictScheme):
@@ -30,16 +38,25 @@ class Flavour(DictScheme):
     @staticmethod
     def from_pkgbuild(pkgbuild: Pkgbuild) -> Flavour:
         name = pkgbuild.name
-        if not name.startswith('flavour-'):
-            raise Exception(f'Flavour package "{name}" doesn\'t start with "flavour-": "{name}"')
-        if name.endswith('-common'):
-            raise Exception(f'Flavour package "{name}" ends with "-common": "{name}"')
+        if not name.startswith("flavour-"):
+            raise Exception(
+                f'Flavour package "{name}" doesn\'t start with "flavour-": "{name}"'
+            )
+        if name.endswith("-common"):
+            raise Exception(
+                f'Flavour package "{name}" ends with "-common": "{name}"'
+            )
         name = name[8:]  # split off 'flavour-'
         description = pkgbuild.description
         # cut off FLAVOUR_DESCRIPTION_PREFIX
         if description.lower().startswith(FLAVOUR_DESCRIPTION_PREFIX.lower()):
-            description = description[len(FLAVOUR_DESCRIPTION_PREFIX):]
-        return Flavour(name=name, pkgbuild=pkgbuild, description=description.strip(), flavour_info=None)
+            description = description[len(FLAVOUR_DESCRIPTION_PREFIX) :]
+        return Flavour(
+            name=name,
+            pkgbuild=pkgbuild,
+            description=description.strip(),
+            flavour_info=None,
+        )
 
     def __repr__(self):
         return f'Flavour<"{self.name}": "{self.description}", package: {self.pkgbuild.name if self.pkgbuild else "??? PROBABLY A BUG!"}{f", {self.flavour_info}" if self.flavour_info else ""}>'
@@ -48,16 +65,16 @@ class Flavour(DictScheme):
         return self.nice_str()
 
     def nice_str(self, newlines: bool = False, colors: bool = False) -> str:
-        separator = '\n' if newlines else ', '
+        separator = "\n" if newlines else ", "
 
-        def get_lines(k, v, key_prefix=''):
+        def get_lines(k, v, key_prefix=""):
             results = []
-            full_k = f'{key_prefix}.{k}' if key_prefix else k
+            full_k = f"{key_prefix}.{k}" if key_prefix else k
             if not isinstance(v, (dict, DictScheme)):
-                results = [f'{color_str(full_k, bold=True)}: {v}']
+                results = [f"{color_str(full_k, bold=True)}: {v}"]
             else:
                 for _k, _v in v.items():
-                    if _k.startswith('_'):
+                    if _k.startswith("_"):
                         continue
                     results += get_lines(_k, _v, key_prefix=full_k)
             return results
@@ -67,16 +84,22 @@ class Flavour(DictScheme):
     def parse_flavourinfo(self, lazy: bool = True):
         if lazy and self.flavour_info is not None:
             return self.flavour_info
-        infopath = os.path.join(config.get_path('pkgbuilds'), self.pkgbuild.path, FLAVOUR_INFO_FILE)
+        infopath = os.path.join(
+            config.get_path("pkgbuilds"), self.pkgbuild.path, FLAVOUR_INFO_FILE
+        )
         if not os.path.exists(infopath):
-            raise Exception(f"Error parsing flavour info for flavour {self.name}: file doesn't exist: {infopath}")
+            raise Exception(
+                f"Error parsing flavour info for flavour {self.name}: file doesn't exist: {infopath}"
+            )
         try:
-            defaults = {'description': None}
-            with open(infopath, 'r') as fd:
+            defaults = {"description": None}
+            with open(infopath, "r") as fd:
                 infodict = json.load(fd)
             i = FlavourInfo(**(defaults | infodict))
         except Exception as ex:
-            raise Exception(f"Error parsing {FLAVOUR_INFO_FILE} for flavour {self.name}: {ex}")
+            raise Exception(
+                f"Error parsing {FLAVOUR_INFO_FILE} for flavour {self.name}: {ex}"
+            )
         self.flavour_info = i
         if i.description:
             self.description = i.description
@@ -93,10 +116,12 @@ def get_flavours(lazy: bool = True):
         return _flavours_cache
     logging.info("Searching PKGBUILDs for flavour packages")
     flavours: dict[str, Flavour] = {}
-    pkgbuilds: dict[str, Pkgbuild] = discover_pkgbuilds(lazy=(lazy or not _flavours_discovered))
+    pkgbuilds: dict[str, Pkgbuild] = discover_pkgbuilds(
+        lazy=(lazy or not _flavours_discovered)
+    )
     for pkg in pkgbuilds.values():
         name = pkg.name
-        if not name.startswith('flavour-') or name.endswith('-common'):
+        if not name.startswith("flavour-") or name.endswith("-common"):
             continue
         name = name[8:]  # split off 'flavour-'
         logging.info(f"Found flavour package {name}")
@@ -109,7 +134,7 @@ def get_flavours(lazy: bool = True):
 
 def get_flavour(name: str, lazy: bool = True):
     global _flavours_cache
-    pkg_name = f'flavour-{name}'
+    pkg_name = f"flavour-{name}"
     if lazy and name in _flavours_cache:
         return _flavours_cache[name]
     try:
@@ -117,7 +142,9 @@ def get_flavour(name: str, lazy: bool = True):
         init_pkgbuilds()
         pkg = get_pkgbuild_by_name(pkg_name)
     except Exception as ex:
-        raise Exception(f"Error parsing PKGBUILD for flavour package {pkg_name}:\n{ex}")
+        raise Exception(
+            f"Error parsing PKGBUILD for flavour package {pkg_name}:\n{ex}"
+        )
     assert pkg and pkg.name == pkg_name
     flavour = Flavour.from_pkgbuild(pkg)
     _flavours_cache[name] = flavour

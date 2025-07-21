@@ -6,15 +6,15 @@ from typing import Optional
 from .scheme import Profile, SparseProfile
 
 PROFILE_DEFAULTS_DICT: dict[str, str | int | None | list[str]] = {
-    'parent': '',
-    'device': '',
-    'flavour': '',
-    'pkgs_include': [],
-    'pkgs_exclude': [],
-    'hostname': 'kupfer',
-    'username': 'kupfer',
-    'password': None,
-    'size_extra_mb': "0",
+    "parent": "",
+    "device": "",
+    "flavour": "",
+    "pkgs_include": [],
+    "pkgs_exclude": [],
+    "hostname": "kupfer",
+    "username": "kupfer",
+    "password": None,
+    "size_extra_mb": "0",
 }
 PROFILE_DEFAULTS = Profile.fromDict(PROFILE_DEFAULTS_DICT)
 
@@ -45,38 +45,51 @@ def resolve_profile(
         resolved = dict[str, Profile]()
     if name in _visited:
         loop = list(_visited)
-        raise Exception(f'Dependency loop detected in profiles: {" -> ".join(loop+[loop[0]])}')
+        raise Exception(
+            f"Dependency loop detected in profiles: {' -> '.join(loop + [loop[0]])}"
+        )
     if name in resolved:
         return resolved
 
-    logging.debug(f'Resolving profile {name}')
+    logging.debug(f"Resolving profile {name}")
     _visited.append(name)
     sparse = sparse_profiles[name].copy()
     full = deepcopy(sparse)
-    if name != 'default' and 'parent' not in sparse:
-        sparse['parent'] = 'default'
-    if 'parent' in sparse and (parent_name := sparse['parent']):
-        parent = resolve_profile(name=parent_name, sparse_profiles=sparse_profiles, resolved=resolved, _visited=_visited)[parent_name]
+    if name != "default" and "parent" not in sparse:
+        sparse["parent"] = "default"
+    if "parent" in sparse and (parent_name := sparse["parent"]):
+        parent = resolve_profile(
+            name=parent_name,
+            sparse_profiles=sparse_profiles,
+            resolved=resolved,
+            _visited=_visited,
+        )[parent_name]
         full = parent | sparse
         # add up size_extra_mb
-        if 'size_extra_mb' in sparse:
-            size = sparse['size_extra_mb']
-            if isinstance(size, str) and size.startswith('+'):
-                full['size_extra_mb'] = int(parent.get('size_extra_mb', 0)) + int(size.lstrip('+'))
+        if "size_extra_mb" in sparse:
+            size = sparse["size_extra_mb"]
+            if isinstance(size, str) and size.startswith("+"):
+                full["size_extra_mb"] = int(
+                    parent.get("size_extra_mb", 0)
+                ) + int(size.lstrip("+"))
             else:
-                full['size_extra_mb'] = int(sparse['size_extra_mb'])
+                full["size_extra_mb"] = int(sparse["size_extra_mb"])
         # join our includes with parent's
-        includes = set(parent.get('pkgs_include', []) + sparse.get('pkgs_include', []))
-        if 'pkgs_exclude' in sparse:
-            includes -= set(sparse['pkgs_exclude'])
-        full['pkgs_include'] = list(includes)
+        includes = set(
+            parent.get("pkgs_include", []) + sparse.get("pkgs_include", [])
+        )
+        if "pkgs_exclude" in sparse:
+            includes -= set(sparse["pkgs_exclude"])
+        full["pkgs_include"] = list(includes)
 
         # join our includes with parent's
-        excludes = set(parent.get('pkgs_exclude', []) + sparse.get('pkgs_exclude', []))
+        excludes = set(
+            parent.get("pkgs_exclude", []) + sparse.get("pkgs_exclude", [])
+        )
         # our includes override parent excludes
-        if 'pkgs_include' in sparse:
-            excludes -= set(sparse['pkgs_include'])
-        full['pkgs_exclude'] = list(excludes)
+        if "pkgs_include" in sparse:
+            excludes -= set(sparse["pkgs_include"])
+        full["pkgs_exclude"] = list(excludes)
 
     # now init missing keys
     for key, value in PROFILE_DEFAULTS_DICT.items():
@@ -85,7 +98,7 @@ def resolve_profile(
             if type(value) == list:
                 full[key] = []  # type: ignore[literal-required]
 
-    full['size_extra_mb'] = int(full['size_extra_mb'] or 0)
+    full["size_extra_mb"] = int(full["size_extra_mb"] or 0)
 
     resolved[name] = Profile.fromDict(full)
     return resolved
@@ -107,8 +120,10 @@ def resolve_profile_attr(
     if attr_name in profile:
         return profile[attr_name], profile_name
 
-    if 'parent' not in profile:
-        raise KeyError(f'Profile attribute {attr_name} not found in {profile_name} and no parents')
+    if "parent" not in profile:
+        raise KeyError(
+            f"Profile attribute {attr_name} not found in {profile_name} and no parents"
+        )
     parent = profile
     parent_name = profile_name
     seen = []
@@ -118,11 +133,15 @@ def resolve_profile_attr(
 
         seen.append(parent_name)
 
-        if not parent.get('parent', None):
-            raise KeyError(f'Profile attribute {attr_name} not found in inheritance chain, '
-                           f'we went down to {parent_name}.')
-        parent_name = parent['parent']
+        if not parent.get("parent", None):
+            raise KeyError(
+                f"Profile attribute {attr_name} not found in inheritance chain, "
+                f"we went down to {parent_name}."
+            )
+        parent_name = parent["parent"]
         if parent_name in seen:
-            raise RecursionError(f"Profile recursion loop: profile {profile_name} couldn't be resolved"
-                                 f"because of a dependency loop:\n{' -> '.join([*seen, parent_name])}")
+            raise RecursionError(
+                f"Profile recursion loop: profile {profile_name} couldn't be resolved"
+                f"because of a dependency loop:\n{' -> '.join([*seen, parent_name])}"
+            )
         parent = profiles_sparse[parent_name]

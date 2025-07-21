@@ -2,7 +2,7 @@ import pytest
 
 from kupferbootstrap.flavours.flavour import Flavour, get_flavour, get_flavours
 
-FLAVOUR_NAME = 'phosh'
+FLAVOUR_NAME = "phosh"
 
 
 @pytest.fixture()

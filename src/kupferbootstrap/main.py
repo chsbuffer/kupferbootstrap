@@ -7,7 +7,13 @@ from os import isatty
 from traceback import format_exc, format_exception_only, format_tb
 from typing import Optional
 
-from .logger import color_option, logging, quiet_option, setup_logging, verbose_option
+from .logger import (
+    color_option,
+    logging,
+    quiet_option,
+    setup_logging,
+    verbose_option,
+)
 from .wrapper import get_wrapper_type, enforce_wrap, nowrapper_option
 from .progressbar import progress_bars_option
 
@@ -24,7 +30,14 @@ from .version.cli import cmd_version
 
 
 @click.group()
-@click.option('--error-shell', '-E', 'error_shell', is_flag=True, default=False, help='Spawn shell after error occurs')
+@click.option(
+    "--error-shell",
+    "-E",
+    "error_shell",
+    is_flag=True,
+    default=False,
+    help="Spawn shell after error occurs",
+)
 @verbose_option
 @quiet_option
 @config_option
@@ -49,33 +62,39 @@ def cli(
     config.runtime.error_shell = error_shell
     config.try_load_file(config_file)
     if config.file_state.exception:
-        logging.warning(f"Config file couldn't be loaded: {config.file_state.exception}")
+        logging.warning(
+            f"Config file couldn't be loaded: {config.file_state.exception}"
+        )
     if wrapper_override:
-        logging.info(f'Force-wrapping in wrapper-type: "{get_wrapper_type()}"!')
+        logging.info(
+            f'Force-wrapping in wrapper-type: "{get_wrapper_type()}"!'
+        )
         enforce_wrap()
 
 
 def main():
     try:
-        return cli(prog_name='kupferbootstrap')
+        return cli(prog_name="kupferbootstrap")
     except Exception as ex:
         if config.runtime.verbose:
             msg = format_exc()
         else:
-            tb_start = ''.join(format_tb(ex.__traceback__, limit=1)).strip('\n')
-            tb_end = ''.join(format_tb(ex.__traceback__, limit=-1)).strip('\n')
+            tb_start = "".join(format_tb(ex.__traceback__, limit=1)).strip(
+                "\n"
+            )
+            tb_end = "".join(format_tb(ex.__traceback__, limit=-1)).strip("\n")
             short_tb = [
-                'Traceback (most recent call last):',
+                "Traceback (most recent call last):",
                 tb_start,
-                '[...]',
+                "[...]",
                 tb_end,
                 format_exception_only(ex)[-1],  # type: ignore[arg-type]
             ]
-            msg = '\n'.join(short_tb)
-        logging.fatal('\n' + msg)
+            msg = "\n".join(short_tb)
+        logging.fatal("\n" + msg)
         if config.runtime.error_shell:
-            logging.info('Starting error shell. Type exit to quit.')
-            subprocess.call('/bin/bash')
+            logging.info("Starting error shell. Type exit to quit.")
+            subprocess.call("/bin/bash")
         exit(1)
 
 
@@ -90,5 +109,5 @@ cli.add_command(cmd_net)
 cli.add_command(cmd_packages)
 cli.add_command(cmd_version)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

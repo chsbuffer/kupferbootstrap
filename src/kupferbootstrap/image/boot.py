@@ -5,7 +5,12 @@ import click
 from typing import Optional
 
 from kupferbootstrap.config.state import config
-from kupferbootstrap.constants import FLASH_PARTS, FASTBOOT, JUMPDRIVE, JUMPDRIVE_VERSION
+from kupferbootstrap.constants import (
+    FLASH_PARTS,
+    FASTBOOT,
+    JUMPDRIVE,
+    JUMPDRIVE_VERSION,
+)
 from kupferbootstrap.exec.file import makedir
 from kupferbootstrap.devices.device import get_profile_device
 from kupferbootstrap.flavours.flavour import get_profile_flavour
@@ -14,26 +19,44 @@ from kupferbootstrap.version.cli import _check_kbs_version
 from kupferbootstrap.wrapper import enforce_wrap
 
 from .fastboot import fastboot_boot, fastboot_erase
-from .image import get_device_name, losetup_rootfs_image, get_image_path, dump_aboot, dump_lk2nd
+from .image import (
+    get_device_name,
+    losetup_rootfs_image,
+    get_image_path,
+    dump_aboot,
+    dump_lk2nd,
+)
 
-LK2ND = FLASH_PARTS['LK2ND']
-ABOOT = FLASH_PARTS['ABOOT']
+LK2ND = FLASH_PARTS["LK2ND"]
+ABOOT = FLASH_PARTS["ABOOT"]
 
 BOOT_TYPES = [ABOOT, LK2ND, JUMPDRIVE]
 
 
-@click.command(name='boot')
+@click.command(name="boot")
 @profile_option
-@click.argument('type', required=False, default=ABOOT, type=click.Choice(BOOT_TYPES))
-@click.option('-b', '--sector-size', type=int, help="Override the device's sector size", default=None)
+@click.argument(
+    "type", required=False, default=ABOOT, type=click.Choice(BOOT_TYPES)
+)
 @click.option(
-    '--erase-dtbo/--no-erase-dtbo',
+    "-b",
+    "--sector-size",
+    type=int,
+    help="Override the device's sector size",
+    default=None,
+)
+@click.option(
+    "--erase-dtbo/--no-erase-dtbo",
     is_flag=True,
     default=True,
     show_default=True,
     help="Erase the DTBO partition before flashing",
 )
-@click.option('--confirm', is_flag=True, help="Ask for confirmation before executing fastboot commands")
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Ask for confirmation before executing fastboot commands",
+)
 def cmd_boot(
     type: str,
     profile: Optional[str] = None,
@@ -49,7 +72,9 @@ def cmd_boot(
     deviceinfo = device.parse_deviceinfo()
     sector_size = sector_size or device.get_image_sectorsize_default()
     if not sector_size:
-        raise Exception(f"Device {device.name} has no rootfs_image_sector_size specified")
+        raise Exception(
+            f"Device {device.name} has no rootfs_image_sector_size specified"
+        )
     image_path = get_image_path(device, flavour)
     strategy = deviceinfo.flash_method
     if not strategy:
@@ -57,21 +82,26 @@ def cmd_boot(
 
     if strategy == FASTBOOT:
         if type == JUMPDRIVE:
-            file = f'boot-{get_device_name(device)}.img'
-            path = os.path.join(config.get_path('jumpdrive'), file)
+            file = f"boot-{get_device_name(device)}.img"
+            path = os.path.join(config.get_path("jumpdrive"), file)
             makedir(os.path.dirname(path))
             if not os.path.exists(path):
-                urllib.request.urlretrieve(f'https://github.com/dreemurrs-embedded/Jumpdrive/releases/download/{JUMPDRIVE_VERSION}/{file}', path)
+                urllib.request.urlretrieve(
+                    f"https://github.com/dreemurrs-embedded/Jumpdrive/releases/download/{JUMPDRIVE_VERSION}/{file}",
+                    path,
+                )
         else:
             loop_device = losetup_rootfs_image(image_path, sector_size)
             if type == LK2ND:
-                path = dump_lk2nd(loop_device + 'p1')
+                path = dump_lk2nd(loop_device + "p1")
             elif type == ABOOT:
-                path = dump_aboot(loop_device + 'p1')
+                path = dump_aboot(loop_device + "p1")
             else:
-                raise Exception(f'Unknown boot image type {type}')
+                raise Exception(f"Unknown boot image type {type}")
         if erase_dtbo:
-            fastboot_erase('dtbo', confirm=confirm)
+            fastboot_erase("dtbo", confirm=confirm)
         fastboot_boot(path, confirm=confirm)
     else:
-        raise Exception(f'Unsupported flash strategy "{strategy}" for device {device.name}')
+        raise Exception(
+            f'Unsupported flash strategy "{strategy}" for device {device.name}'
+        )

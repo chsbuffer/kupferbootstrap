@@ -16,33 +16,34 @@ from .helpers import base_chroot_name
 
 
 class BaseChroot(Chroot):
-
     _copy_base: ClassVar[bool] = False
 
     def create_rootfs(self, reset, pacman_conf_target, active_previously):
         if reset:
-            logging.info(f'Resetting {self.name}')
-            for dir in glob(os.path.join(self.path, '*')):
+            logging.info(f"Resetting {self.name}")
+            for dir in glob(os.path.join(self.path, "*")):
                 rmtree(dir)
-        makedir(config.get_path('chroots'))
+        makedir(config.get_path("chroots"))
         root_makedir(self.get_path())
 
         self.write_pacman_conf()
         self.mount_pacman_cache()
 
-        logging.info(f'Pacstrapping chroot {self.name}: {", ".join(self.base_packages)}')
+        logging.info(
+            f"Pacstrapping chroot {self.name}: {', '.join(self.base_packages)}"
+        )
 
         result = run_root_cmd(
             [
-                'pacstrap',
-                '-C',
+                "pacstrap",
+                "-C",
                 pacman_conf_target,
-                '-G',
+                "-G",
                 self.path,
                 *self.base_packages,
-                '--needed',
-                '--overwrite=*',
-                '-yyuu',
+                "--needed",
+                "--overwrite=*",
+                "-yyuu",
             ],
             stderr=sys.stdout,
         )
@@ -54,6 +55,8 @@ class BaseChroot(Chroot):
 def get_base_chroot(arch: Arch) -> BaseChroot:
     name = base_chroot_name(arch)
     args = dict(arch=arch, copy_base=False)
-    chroot = get_chroot(name, initialize=False, chroot_class=BaseChroot, chroot_args=args)
+    chroot = get_chroot(
+        name, initialize=False, chroot_class=BaseChroot, chroot_args=args
+    )
     assert isinstance(chroot, BaseChroot)
     return chroot

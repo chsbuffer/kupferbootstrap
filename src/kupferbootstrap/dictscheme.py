@@ -5,12 +5,25 @@ import toml
 
 from munch import Munch
 from toml.encoder import TomlEncoder, TomlPreserveInlineDictEncoder
-from typing import ClassVar, Generator, Optional, Union, Mapping, Any, get_type_hints, get_origin, get_args, Iterable
+from typing import (
+    ClassVar,
+    Generator,
+    Optional,
+    Union,
+    Mapping,
+    Any,
+    get_type_hints,
+    get_origin,
+    get_args,
+    Iterable,
+)
 
 from .typehelpers import UnionType, NoneType
 
 
-def resolve_type_hint(hint: type, ignore_origins: list[type] = []) -> Iterable[type]:
+def resolve_type_hint(
+    hint: type, ignore_origins: list[type] = []
+) -> Iterable[type]:
     origin = get_origin(hint)
     args: Iterable[type] = get_args(hint)
     if origin in ignore_origins:
@@ -46,13 +59,20 @@ def resolve_dict_hints(hints: Any) -> Generator[tuple[Any, ...], None, None]:
 
 
 class DictScheme(Munch):
-
     _type_hints: ClassVar[dict[str, Any]]
     _strip_hidden: ClassVar[bool] = False
     _sparse: ClassVar[bool] = False
 
-    def __init__(self, d: Mapping = {}, validate: bool = True, allow_extra: bool = False, **kwargs):
-        self.update(dict(d) | kwargs, validate=validate, allow_extra=allow_extra)
+    def __init__(
+        self,
+        d: Mapping = {},
+        validate: bool = True,
+        allow_extra: bool = False,
+        **kwargs,
+    ):
+        self.update(
+            dict(d) | kwargs, validate=validate, allow_extra=allow_extra
+        )
 
     @classmethod
     def transform(
@@ -75,7 +95,9 @@ class DictScheme(Munch):
                     results[key] = None
                     continue
                 if issubclass(_classes[0], dict):
-                    assert isinstance(value, dict) or (optional and value is None), f'{key=} is not dict: {value!r}, {_classes=}'
+                    assert isinstance(value, dict) or (
+                        optional and value is None
+                    ), f"{key=} is not dict: {value!r}, {_classes=}"
                     target_class = _classes[0]
                     if target_class in [None, NoneType, Optional]:
                         for target in _classes[1:]:
@@ -90,8 +112,12 @@ class DictScheme(Munch):
                                 raise Exception(msg)
                             logging.warning(msg)
                         if len(dict_hints) == 1 and value is not None:
-                            if len(dict_hints[0]) != 2 or not all(dict_hints[0]):
-                                logging.debug(f"Weird dict hints received: {dict_hints}")
+                            if len(dict_hints[0]) != 2 or not all(
+                                dict_hints[0]
+                            ):
+                                logging.debug(
+                                    f"Weird dict hints received: {dict_hints}"
+                                )
                                 continue
                             key_type, value_type = dict_hints[0]
                             if not isinstance(value, Mapping):
@@ -111,23 +137,44 @@ class DictScheme(Munch):
                                     logging.warning(msg)
                                 if validate:
                                     for k in value:
-                                        if not isinstance(k, tuple(flatten_hints(key_type))):
-                                            raise Exception(f'Subdict "{key}": wrong type for subkey "{k}": got: {type(k)}, expected: {key_type}')
+                                        if not isinstance(
+                                            k, tuple(flatten_hints(key_type))
+                                        ):
+                                            raise Exception(
+                                                f'Subdict "{key}": wrong type for subkey "{k}": got: {type(k)}, expected: {key_type}'
+                                            )
                             dict_content_hints = {k: value_type for k in value}
-                            value = cls.transform(value, validate=validate, allow_extra=allow_extra, type_hints=dict_content_hints)
+                            value = cls.transform(
+                                value,
+                                validate=validate,
+                                allow_extra=allow_extra,
+                                type_hints=dict_content_hints,
+                            )
                     if not isinstance(value, target_class):
                         if not (optional and value is None):
                             assert issubclass(target_class, Munch)
                             # despite the above assert, mypy doesn't seem to understand target_class is a Munch here
-                            kwargs = {'validate': validate} if issubclass(target_class, DictScheme) else {}
+                            kwargs = (
+                                {"validate": validate}
+                                if issubclass(target_class, DictScheme)
+                                else {}
+                            )
                             value = target_class(value, **kwargs)  # type:ignore[attr-defined]
                     else:
                         # print(f"nothing to do: '{key}' was already {target_class})
                         pass
                 # handle numerics
-                elif set(_classes).intersection([int, float]) and isinstance(value, str) and str not in _classes:
+                elif (
+                    set(_classes).intersection([int, float])
+                    and isinstance(value, str)
+                    and str not in _classes
+                ):
                     parsed_number = None
-                    parsers: list[tuple[type, list]] = [(int, [10]), (int, [0]), (float, [])]
+                    parsers: list[tuple[type, list]] = [
+                        (int, [10]),
+                        (int, [0]),
+                        (float, []),
+                    ]
                     for _cls, args in parsers:
                         if _cls not in _classes:
                             continue
@@ -138,15 +185,23 @@ class DictScheme(Munch):
                             continue
                     if parsed_number is None:
                         if validate:
-                            raise Exception(f"Couldn't parse string value {repr(value)} for key '{key}' into number formats: " +
-                                            (', '.join(list(c.__name__ for c in _classes))))
+                            raise Exception(
+                                f"Couldn't parse string value {repr(value)} for key '{key}' into number formats: "
+                                + (
+                                    ", ".join(
+                                        list(c.__name__ for c in _classes)
+                                    )
+                                )
+                            )
                     else:
                         value = parsed_number
                 if validate:
                     if not isinstance(value, _classes):
-                        raise Exception(f'key "{key}" has value of wrong type! expected: '
-                                        f'{" ,".join([ c.__name__ for c in _classes])}; '
-                                        f'got: {type(value).__name__}; value: {value}')
+                        raise Exception(
+                            f'key "{key}" has value of wrong type! expected: '
+                            f"{' ,'.join([c.__name__ for c in _classes])}; "
+                            f"got: {type(value).__name__}; value: {value}"
+                        )
             elif validate and not allow_extra:
                 logging.debug(f"{cls}: unknown key '{key}': {value}")
                 raise Exception(f'{cls}: Unknown key "{key}"')
@@ -156,13 +211,17 @@ class DictScheme(Munch):
             results[key] = value
         if values:
             if validate:
-                raise Exception(f'values contained unknown keys: {list(values.keys())}')
+                raise Exception(
+                    f"values contained unknown keys: {list(values.keys())}"
+                )
             results |= values
 
         return results
 
     @classmethod
-    def fromDict(cls, values: Mapping[str, Any], validate: bool = True, **kwargs):
+    def fromDict(
+        cls, values: Mapping[str, Any], validate: bool = True, **kwargs
+    ):
         return cls(d=values, validate=validate, **kwargs)
 
     def toDict(
@@ -189,7 +248,9 @@ class DictScheme(Munch):
     ) -> dict[Any, Any]:
         # preserve original None-type args
         _sparse = cls._sparse if sparse is None else sparse
-        _strip_hidden = cls._strip_hidden if strip_hidden is None else strip_hidden
+        _strip_hidden = (
+            cls._strip_hidden if strip_hidden is None else strip_hidden
+        )
         hints = cls._type_hints if hints is None else hints
         result = dict(d)
         if not (_strip_hidden or _sparse or result):
@@ -202,7 +263,7 @@ class DictScheme(Munch):
                     raise Exception(msg)
                 logging.warning(f"{msg} (skipping)")
                 continue
-            if _strip_hidden and k.startswith('_'):
+            if _strip_hidden and k.startswith("_"):
                 result.pop(k)
                 continue
             if v is None:
@@ -220,7 +281,9 @@ class DictScheme(Munch):
                     continue
                 if isinstance(v, DictScheme):
                     # pass None in sparse and strip_hidden
-                    result[k] = v.toDict(strip_hidden=strip_hidden, sparse=sparse)
+                    result[k] = v.toDict(
+                        strip_hidden=strip_hidden, sparse=sparse
+                    )
                     continue
                 if isinstance(v, Munch):
                     result[k] = v.toDict()
@@ -251,15 +314,29 @@ class DictScheme(Munch):
                 )
         return result
 
-    def update(self, d: Mapping[str, Any], validate: bool = True, allow_extra: bool = False):
-        Munch.update(self, type(self).transform(d, validate=validate, allow_extra=allow_extra))
+    def update(
+        self,
+        d: Mapping[str, Any],
+        validate: bool = True,
+        allow_extra: bool = False,
+    ):
+        Munch.update(
+            self,
+            type(self).transform(
+                d, validate=validate, allow_extra=allow_extra
+            ),
+        )
 
     def __init_subclass__(cls):
         super().__init_subclass__()
-        cls._type_hints = {name: hint for name, hint in get_type_hints(cls).items() if get_origin(hint) is not ClassVar}
+        cls._type_hints = {
+            name: hint
+            for name, hint in get_type_hints(cls).items()
+            if get_origin(hint) is not ClassVar
+        }
 
     def __repr__(self):
-        return f'{type(self)}{dict.__repr__(dict(self))}'
+        return f"{type(self)}{dict.__repr__(dict(self))}"
 
     def toYAML(
         self,
@@ -268,7 +345,8 @@ class DictScheme(Munch):
         **yaml_args,
     ) -> str:
         import yaml
-        yaml_args = {'sort_keys': False} | yaml_args
+
+        yaml_args = {"sort_keys": False} | yaml_args
         dumped = yaml.dump(
             self.toDict(strip_hidden=strip_hidden, sparse=sparse),
             **yaml_args,
@@ -278,10 +356,10 @@ class DictScheme(Munch):
         return dumped
 
     def toToml(
-            self,
-            strip_hidden: Optional[bool] = None,
-            sparse: Optional[bool] = None,
-            encoder: Optional[TomlEncoder] = TomlPreserveInlineDictEncoder(),
+        self,
+        strip_hidden: Optional[bool] = None,
+        sparse: Optional[bool] = None,
+        encoder: Optional[TomlEncoder] = TomlPreserveInlineDictEncoder(),
     ) -> str:
         return toml.dumps(
             self.toDict(strip_hidden=strip_hidden, sparse=sparse),

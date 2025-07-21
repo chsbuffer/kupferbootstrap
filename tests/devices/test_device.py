@@ -5,11 +5,23 @@ import os
 from copy import copy
 
 from kupferbootstrap.config.state import ConfigStateHolder, config
-from kupferbootstrap.devices.device import Device, DEVICE_DEPRECATIONS, get_device, get_devices, parse_device_pkg, check_devicepkg_name
-from kupferbootstrap.packages.pkgbuild import init_pkgbuilds, discover_pkgbuilds, Pkgbuild, parse_pkgbuild
+from kupferbootstrap.devices.device import (
+    Device,
+    DEVICE_DEPRECATIONS,
+    get_device,
+    get_devices,
+    parse_device_pkg,
+    check_devicepkg_name,
+)
+from kupferbootstrap.packages.pkgbuild import (
+    init_pkgbuilds,
+    discover_pkgbuilds,
+    Pkgbuild,
+    parse_pkgbuild,
+)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def initialise_pkgbuilds_dir() -> ConfigStateHolder:
     config.try_load_file()
     init_pkgbuilds(interactive=False)
@@ -20,10 +32,10 @@ def initialise_pkgbuilds_dir() -> ConfigStateHolder:
 def pkgbuilds_dir(initialise_pkgbuilds_dir: ConfigStateHolder) -> str:
     global config
     config = initialise_pkgbuilds_dir
-    return config.get_path('pkgbuilds')
+    return config.get_path("pkgbuilds")
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def pkgbuilds_repo_cached(initialise_pkgbuilds_dir) -> dict[str, Pkgbuild]:
     return discover_pkgbuilds()
 
@@ -34,29 +46,31 @@ def pkgbuilds_repo(pkgbuilds_dir, pkgbuilds_repo_cached):
     return pkgbuilds_repo_cached
 
 
-ONEPLUS_ENCHILADA = 'sdm845-oneplus-enchilada'
-ONEPLUS_ENCHILADA_PKG = f'device-{ONEPLUS_ENCHILADA}'
+ONEPLUS_ENCHILADA = "sdm845-oneplus-enchilada"
+ONEPLUS_ENCHILADA_PKG = f"device-{ONEPLUS_ENCHILADA}"
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def enchilada_pkgbuild(initialise_pkgbuilds_dir: ConfigStateHolder):
     config = initialise_pkgbuilds_dir
     config.try_load_file()
-    return parse_pkgbuild(os.path.join('device', ONEPLUS_ENCHILADA_PKG))[0]
+    return parse_pkgbuild(os.path.join("device", ONEPLUS_ENCHILADA_PKG))[0]
 
 
 def validate_oneplus_enchilada(d: Device):
     assert d
-    assert d.arch == 'aarch64'
+    assert d.arch == "aarch64"
     assert d.package and d.package.name == ONEPLUS_ENCHILADA_PKG
 
 
-def test_fixture_initialise_pkgbuilds_dir(initialise_pkgbuilds_dir: ConfigStateHolder):
-    assert os.path.exists(os.path.join(config.get_path('pkgbuilds'), 'device'))
+def test_fixture_initialise_pkgbuilds_dir(
+    initialise_pkgbuilds_dir: ConfigStateHolder,
+):
+    assert os.path.exists(os.path.join(config.get_path("pkgbuilds"), "device"))
 
 
 def test_fixture_pkgbuilds_dir(pkgbuilds_dir):
-    assert os.path.exists(os.path.join(pkgbuilds_dir, 'device'))
+    assert os.path.exists(os.path.join(pkgbuilds_dir, "device"))
 
 
 def test_get_device():
@@ -66,7 +80,7 @@ def test_get_device():
 
 
 def test_get_device_deprecated():
-    name = 'oneplus-enchilada'
+    name = "oneplus-enchilada"
     assert name in DEVICE_DEPRECATIONS
     d = get_device(name)
     # currently redirects to correct package, need to change this test when changed to an exception
@@ -79,7 +93,7 @@ def test_parse_device_pkg_enchilada(enchilada_pkgbuild):
 
 def test_parse_device_pkg_malformed_arch(enchilada_pkgbuild):
     enchilada_pkgbuild = copy(enchilada_pkgbuild)
-    enchilada_pkgbuild.arches.append('x86_64')
+    enchilada_pkgbuild.arches.append("x86_64")
     with pytest.raises(Exception):
         parse_device_pkg(enchilada_pkgbuild)
 
@@ -96,5 +110,5 @@ def test_get_devices(pkgbuilds_repo: dict[str, Pkgbuild]):
     assert ONEPLUS_ENCHILADA in d
     for p in d.values():
         check_devicepkg_name(p.package.name)
-    assert 'sdm845-oneplus-common' not in d
+    assert "sdm845-oneplus-common" not in d
     validate_oneplus_enchilada(d[ONEPLUS_ENCHILADA])

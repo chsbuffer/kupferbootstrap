@@ -12,7 +12,7 @@ from kupferbootstrap.constants import Arch
 from kupferbootstrap.dictscheme import DictScheme
 
 PMOS_ARCHES_OVERRIDES: dict[str, Arch] = {
-    "armv7": 'armv7h',
+    "armv7": "armv7h",
 }
 
 DEFAULT_IMAGE_SECTOR_SIZE = 512
@@ -30,7 +30,7 @@ class DeviceInfo(DictScheme):
 
     @classmethod
     def transform(cls, values: Mapping[str, Optional[str]], **kwargs):
-        kwargs = {'allow_extra': True} | kwargs
+        kwargs = {"allow_extra": True} | kwargs
         return super().transform(values, **kwargs)
 
 
@@ -45,7 +45,6 @@ deviceinfo_attributes = [
     "dtb",
     "modules_initfs",
     "arch",
-
     # device
     "chassis",
     "keyboard",
@@ -55,11 +54,9 @@ deviceinfo_attributes = [
     "dev_touchscreen",
     "dev_touchscreen_calibration",
     "append_dtb",
-
     # bootloader
     "flash_method",
     "boot_filesystem",
-
     # flash
     "flash_heimdall_partition_kernel",
     "flash_heimdall_partition_initfs",
@@ -96,10 +93,8 @@ deviceinfo_attributes = [
     "cgpt_kpart",
     "cgpt_kpart_start",
     "cgpt_kpart_size",
-
     # weston
     "weston_pixman_type",
-
     # keymaps
     "keymaps",
 ]
@@ -123,67 +118,95 @@ def sanity_check(deviceinfo: dict[str, Optional[str]], device_name: str):
     try:
         _pmos_sanity_check(deviceinfo, device_name)
     except RuntimeError as err:
-        raise Exception(f"{device_name}: The postmarketOS checker for deviceinfo files has run into an issue.\n"
-                        "Here at kupfer, we usually don't maintain our own deviceinfo files "
-                        "and instead often download them postmarketOS in our PKGBUILDs.\n"
-                        "Please make sure your PKGBUILDs.git is up to date. (run `kupferbootstrap packages update`)\n"
-                        "If the problem persists, please open an issue for this device's deviceinfo file "
-                        "in the kupfer pkgbuilds git repo on Gitlab.\n\n"
-                        "postmarketOS error message (referenced file may not exist until you run makepkg in that directory):\n"
-                        f"{err}")
+        raise Exception(
+            f"{device_name}: The postmarketOS checker for deviceinfo files has run into an issue.\n"
+            "Here at kupfer, we usually don't maintain our own deviceinfo files "
+            "and instead often download them postmarketOS in our PKGBUILDs.\n"
+            "Please make sure your PKGBUILDs.git is up to date. (run `kupferbootstrap packages update`)\n"
+            "If the problem persists, please open an issue for this device's deviceinfo file "
+            "in the kupfer pkgbuilds git repo on Gitlab.\n\n"
+            "postmarketOS error message (referenced file may not exist until you run makepkg in that directory):\n"
+            f"{err}"
+        )
 
 
 def _pmos_sanity_check(info: dict[str, Optional[str]], device_name: str):
     # Resolve path for more readable error messages
-    path = os.path.join(config.get_path('pkgbuilds'), 'device', device_name, 'deviceinfo')
+    path = os.path.join(
+        config.get_path("pkgbuilds"), "device", device_name, "deviceinfo"
+    )
 
     # Legacy errors
     if "flash_methods" in info:
-        raise RuntimeError("deviceinfo_flash_methods has been renamed to"
-                           " deviceinfo_flash_method. Please adjust your"
-                           " deviceinfo file: " + path)
+        raise RuntimeError(
+            "deviceinfo_flash_methods has been renamed to"
+            " deviceinfo_flash_method. Please adjust your"
+            " deviceinfo file: " + path
+        )
     if "external_disk" in info or "external_disk_install" in info:
-        raise RuntimeError("Instead of deviceinfo_external_disk and"
-                           " deviceinfo_external_disk_install, please use the"
-                           " new variable deviceinfo_external_storage in your"
-                           " deviceinfo file: " + path)
+        raise RuntimeError(
+            "Instead of deviceinfo_external_disk and"
+            " deviceinfo_external_disk_install, please use the"
+            " new variable deviceinfo_external_storage in your"
+            " deviceinfo file: " + path
+        )
     if "msm_refresher" in info:
-        raise RuntimeError("It is enough to specify 'msm-fb-refresher' in the"
-                           " depends of your device's package now. Please"
-                           " delete the deviceinfo_msm_refresher line in: " + path)
+        raise RuntimeError(
+            "It is enough to specify 'msm-fb-refresher' in the"
+            " depends of your device's package now. Please"
+            " delete the deviceinfo_msm_refresher line in: " + path
+        )
     if "flash_fastboot_vendor_id" in info:
-        raise RuntimeError("Fastboot doesn't allow specifying the vendor ID"
-                           " anymore (#1830). Try removing the"
-                           " 'deviceinfo_flash_fastboot_vendor_id' line in: " + path + " (if you are sure that "
-                           " you need this, then we can probably bring it back to fastboot, just"
-                           " let us know in the postmarketOS issues!)")
+        raise RuntimeError(
+            "Fastboot doesn't allow specifying the vendor ID"
+            " anymore (#1830). Try removing the"
+            " 'deviceinfo_flash_fastboot_vendor_id' line in: "
+            + path
+            + " (if you are sure that "
+            " you need this, then we can probably bring it back to fastboot, just"
+            " let us know in the postmarketOS issues!)"
+        )
     if "nonfree" in info:
-        raise RuntimeError("deviceinfo_nonfree is unused. "
-                           "Please delete it in: " + path)
+        raise RuntimeError(
+            "deviceinfo_nonfree is unused. Please delete it in: " + path
+        )
     if "dev_keyboard" in info:
-        raise RuntimeError("deviceinfo_dev_keyboard is unused. "
-                           "Please delete it in: " + path)
+        raise RuntimeError(
+            "deviceinfo_dev_keyboard is unused. Please delete it in: " + path
+        )
     if "date" in info:
-        raise RuntimeError("deviceinfo_date was replaced by deviceinfo_year. "
-                           "Set it to the release year in: " + path)
+        raise RuntimeError(
+            "deviceinfo_date was replaced by deviceinfo_year. "
+            "Set it to the release year in: " + path
+        )
 
     # "codename" is required
     codename = os.path.basename(os.path.dirname(path))
     if codename.startswith("device-"):
         codename = codename[7:]
     # kupfer prepends the SoC
-    codename_alternative = codename.split('-', maxsplit=1)[1] if codename.count('-') > 1 else codename
-    _codename = info.get('codename', None)
-    if not _codename or not (_codename in [codename, codename_alternative] or codename.startswith(_codename) or
-                             codename_alternative.startswith(_codename)):
-        raise RuntimeError(f"Please add 'deviceinfo_codename=\"{codename}\"' "
-                           f"to: {path}")
+    codename_alternative = (
+        codename.split("-", maxsplit=1)[1]
+        if codename.count("-") > 1
+        else codename
+    )
+    _codename = info.get("codename", None)
+    if not _codename or not (
+        _codename in [codename, codename_alternative]
+        or codename.startswith(_codename)
+        or codename_alternative.startswith(_codename)
+    ):
+        raise RuntimeError(
+            f"Please add 'deviceinfo_codename=\"{codename}\"' to: {path}"
+        )
 
     # "chassis" is required
     chassis_types = deviceinfo_chassis_types
     if "chassis" not in info or not info["chassis"]:
-        logging.info("NOTE: the most commonly used chassis types in"
-                     " postmarketOS are 'handset' (for phones) and 'tablet'.")
+        logging.info(
+            "NOTE: the most commonly used chassis types in"
+            " postmarketOS are 'handset' (for phones) and 'tablet'."
+        )
         raise RuntimeError(f"Please add 'deviceinfo_chassis' to: {path}")
 
     # "arch" is required
@@ -193,12 +216,16 @@ def _pmos_sanity_check(info: dict[str, Optional[str]], device_name: str):
     # "chassis" validation
     chassis_type = info["chassis"]
     if chassis_type not in chassis_types:
-        raise RuntimeError(f"Unknown chassis type '{chassis_type}', should"
-                           f" be one of {', '.join(chassis_types)}. Fix this"
-                           f" and try again: {path}")
+        raise RuntimeError(
+            f"Unknown chassis type '{chassis_type}', should"
+            f" be one of {', '.join(chassis_types)}. Fix this"
+            f" and try again: {path}"
+        )
 
 
-def parse_kernel_suffix(deviceinfo: dict[str, Optional[str]], kernel: str = 'mainline') -> dict[str, Optional[str]]:
+def parse_kernel_suffix(
+    deviceinfo: dict[str, Optional[str]], kernel: str = "mainline"
+) -> dict[str, Optional[str]]:
     """
     Remove the kernel suffix (as selected in 'pmbootstrap init') from
     deviceinfo variables. Related:
@@ -231,12 +258,14 @@ def parse_kernel_suffix(deviceinfo: dict[str, Optional[str]], kernel: str = 'mai
         # Move ret[key_kernel] to ret[key]
         logging.debug(f"parse_kernel_suffix: {key_kernel} => {key}")
         ret[key] = ret[key_kernel]
-        del (ret[key_kernel])
+        del ret[key_kernel]
 
     return ret
 
 
-def parse_deviceinfo(deviceinfo_lines: list[str], device_name: str, kernel='mainline') -> DeviceInfo:
+def parse_deviceinfo(
+    deviceinfo_lines: list[str], device_name: str, kernel="mainline"
+) -> DeviceInfo:
     """
     :param device: defaults to args.device
     :param kernel: defaults to args.kernel
@@ -250,10 +279,12 @@ def parse_deviceinfo(deviceinfo_lines: list[str], device_name: str, kernel='main
             raise SyntaxError(f"{device_name}: No '=' found:\n\t{line}")
         split = line.split("=", 1)
         if not split[0].startswith("deviceinfo_"):
-            logging.warning(f"{device_name}: Unknown key {split[0]} in deviceinfo:\n{line}")
+            logging.warning(
+                f"{device_name}: Unknown key {split[0]} in deviceinfo:\n{line}"
+            )
             continue
-        key = split[0][len("deviceinfo_"):]
-        value = split[1].replace("\"", "").replace("\n", "")
+        key = split[0][len("deviceinfo_") :]
+        value = split[1].replace('"', "").replace("\n", "")
         info[key] = value
 
     # Assign empty string as default
@@ -263,8 +294,8 @@ def parse_deviceinfo(deviceinfo_lines: list[str], device_name: str, kernel='main
 
     info = parse_kernel_suffix(info, kernel)
     sanity_check(info, device_name)
-    if 'arch' in info:
-        arch = info['arch']
-        info['arch'] = PMOS_ARCHES_OVERRIDES.get(arch, arch)  # type: ignore[arg-type]
+    if "arch" in info:
+        arch = info["arch"]
+        info["arch"] = PMOS_ARCHES_OVERRIDES.get(arch, arch)  # type: ignore[arg-type]
     dev = DeviceInfo.fromDict(info, allow_extra=True)
     return dev

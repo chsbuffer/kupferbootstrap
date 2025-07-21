@@ -13,7 +13,7 @@ from kupferbootstrap.config.state import CONFIG_DEFAULTS, ConfigStateHolder
 
 
 def get_filename():
-    return mktemp() + '_pytest.toml'
+    return mktemp() + "_pytest.toml"
 
 
 @pytest.fixture
@@ -25,8 +25,8 @@ def conf_filename():
 @pytest.fixture
 def empty_config():
     f = get_filename()
-    with open(f, 'w') as fd:
-        fd.write('')
+    with open(f, "w") as fd:
+        fd.write("")
     yield f
     os.unlink(f)
 
@@ -41,7 +41,9 @@ def configstate_emptyfile(empty_config):
     return ConfigStateHolder(empty_config)
 
 
-def validate_ConfigStateHolder(c: ConfigStateHolder, should_load: Optional[bool] = None):
+def validate_ConfigStateHolder(
+    c: ConfigStateHolder, should_load: Optional[bool] = None
+):
     assert isinstance(c, ConfigStateHolder)
     if should_load is not None:
         assert c.file_state.load_finished is True
@@ -49,10 +51,13 @@ def validate_ConfigStateHolder(c: ConfigStateHolder, should_load: Optional[bool]
     assert c.file
 
 
-@pytest.mark.parametrize('conf_fixture,exists', [('configstate_emptyfile', True), ('configstate_nonexistant', False)])
+@pytest.mark.parametrize(
+    "conf_fixture,exists",
+    [("configstate_emptyfile", True), ("configstate_nonexistant", False)],
+)
 def test_fixture_configstate(conf_fixture: str, exists: bool, request):
     configstate = request.getfixturevalue(conf_fixture)
-    assert 'config_file' in configstate.runtime
+    assert "config_file" in configstate.runtime
     confpath = configstate.runtime.config_file
     assert isinstance(confpath, str)
     assert confpath
@@ -68,8 +73,13 @@ def test_config_load_nonexistant(configstate_nonexistant):
     validate_ConfigStateHolder(configstate_nonexistant, should_load=False)
 
 
-@pytest.mark.parametrize('path_fixture,should_load', [('conf_filename', False), ('empty_config', True)])
-def test_loadstate_is_loaded(path_fixture: str, should_load: bool, request: pytest.FixtureRequest):
+@pytest.mark.parametrize(
+    "path_fixture,should_load",
+    [("conf_filename", False), ("empty_config", True)],
+)
+def test_loadstate_is_loaded(
+    path_fixture: str, should_load: bool, request: pytest.FixtureRequest
+):
     path = request.getfixturevalue(path_fixture)
     assert os.path.exists(path) == should_load
     c = ConfigStateHolder(path)
@@ -79,7 +89,9 @@ def test_loadstate_is_loaded(path_fixture: str, should_load: bool, request: pyte
     assert c.is_loaded() == should_load
 
 
-@pytest.mark.parametrize('conf_fixture', ['configstate_emptyfile', 'configstate_nonexistant'])
+@pytest.mark.parametrize(
+    "conf_fixture", ["configstate_emptyfile", "configstate_nonexistant"]
+)
 def test_config_fills_defaults(conf_fixture: str, request):
     c = request.getfixturevalue(conf_fixture)
     assert c.file == CONFIG_DEFAULTS
@@ -89,7 +101,11 @@ def dict_filter_out_None(d: dict):
     return {k: v for k, v in d.items() if v is not None}
 
 
-def compare_to_defaults(config: dict, defaults: dict = CONFIG_DEFAULTS, filter_None_from_defaults: Optional[bool] = None):
+def compare_to_defaults(
+    config: dict,
+    defaults: dict = CONFIG_DEFAULTS,
+    filter_None_from_defaults: Optional[bool] = None,
+):
     if filter_None_from_defaults is None:
         filter_None_from_defaults = not isinstance(config, Config)
     # assert sections match
@@ -101,13 +117,16 @@ def compare_to_defaults(config: dict, defaults: dict = CONFIG_DEFAULTS, filter_N
         if filter_None_from_defaults:
             section_defaults = dict_filter_out_None(section_defaults)
         section_values_config = config[section]
-        if section != 'profiles':
+        if section != "profiles":
             assert section_values_config == section_defaults
         else:
-            CURRENT_KEY = 'current'
+            CURRENT_KEY = "current"
             assert CURRENT_KEY in section_defaults.keys()
             assert section_defaults.keys() == section_values_config.keys()
-            assert section_defaults[CURRENT_KEY] == section_values_config[CURRENT_KEY]
+            assert (
+                section_defaults[CURRENT_KEY]
+                == section_values_config[CURRENT_KEY]
+            )
             for profile_name, profile in section_defaults.items():
                 if profile_name == CURRENT_KEY:
                     continue  # not a profile
@@ -117,7 +136,7 @@ def compare_to_defaults(config: dict, defaults: dict = CONFIG_DEFAULTS, filter_N
 
 
 def load_toml_file(path) -> dict:
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         text = f.read()
     assert text
     return toml.loads(text)
@@ -143,39 +162,53 @@ def test_config_save_nonexistant(configstate_nonexistant: ConfigStateHolder):
 
 def test_config_save_modified(configstate_emptyfile: ConfigStateHolder):
     c = configstate_emptyfile
-    WRAPPER_KEY = 'wrapper'
-    TYPE_KEY = 'type'
+    WRAPPER_KEY = "wrapper"
+    TYPE_KEY = "type"
     assert WRAPPER_KEY in c.file
     assert TYPE_KEY in c.file[WRAPPER_KEY]
-    wrapper_section = CONFIG_DEFAULTS[WRAPPER_KEY] | {TYPE_KEY: 'none'}
+    wrapper_section = CONFIG_DEFAULTS[WRAPPER_KEY] | {TYPE_KEY: "none"}
     c.file[WRAPPER_KEY] |= wrapper_section
     c.write()
     defaults_modified = CONFIG_DEFAULTS | {WRAPPER_KEY: wrapper_section}
-    compare_to_defaults(load_toml_file(get_path_from_stateholder(c)), defaults_modified)
+    compare_to_defaults(
+        load_toml_file(get_path_from_stateholder(c)), defaults_modified
+    )
 
 
-def get_config_scheme(data: dict[str, Any], validate=True, allow_incomplete=False) -> Config:
+def get_config_scheme(
+    data: dict[str, Any], validate=True, allow_incomplete=False
+) -> Config:
     """
     helper func to ignore a false type error.
     for some reason, mypy argues about DictScheme.fromDict() instead of Config.fromDict() here
     """
-    return Config.fromDict(data, validate=validate, allow_incomplete=allow_incomplete)  # type: ignore[call-arg]
+    return Config.fromDict(
+        data, validate=validate, allow_incomplete=allow_incomplete
+    )  # type: ignore[call-arg]
 
 
 def test_config_scheme_defaults():
-    c = get_config_scheme(CONFIG_DEFAULTS, validate=True, allow_incomplete=False)
+    c = get_config_scheme(
+        CONFIG_DEFAULTS, validate=True, allow_incomplete=False
+    )
     assert c
     compare_to_defaults(c)
 
 
 def test_config_scheme_modified():
-    modifications = {'wrapper': {'type': 'none'}, 'build': {'crossdirect': False}}
+    modifications = {
+        "wrapper": {"type": "none"},
+        "build": {"crossdirect": False},
+    }
     assert set(modifications.keys()).issubset(CONFIG_DEFAULTS.keys())
-    d = {section_name: (section | modifications.get(section_name, {})) for section_name, section in CONFIG_DEFAULTS.items()}
+    d = {
+        section_name: (section | modifications.get(section_name, {}))
+        for section_name, section in CONFIG_DEFAULTS.items()
+    }
     c = get_config_scheme(d, validate=True, allow_incomplete=False)
     assert c
     assert c.build.crossdirect is False
-    assert c.wrapper.type == 'none'
+    assert c.wrapper.type == "none"
 
 
 def test_configstate_profile_pickle():
@@ -183,7 +216,10 @@ def test_configstate_profile_pickle():
     assert c.file.wrapper
     assert c.file.profiles
     # add new profile to check it doesn't error out due to unknown keys
-    c.file.profiles['graphical'] = {'username': 'kupfer123', 'hostname': 'test123'}
+    c.file.profiles["graphical"] = {
+        "username": "kupfer123",
+        "hostname": "test123",
+    }
     p = pickle.dumps(c)
     unpickled = pickle.loads(p)
     assert c.file == unpickled.file
@@ -198,19 +234,19 @@ def test_profile():
 
 def test_get_profile():
     c = ConfigStateHolder()
-    d = {'username': 'kupfer123', 'hostname': 'test123'}
-    c.file.profiles['testprofile'] = d
-    p = c.get_profile('testprofile')
+    d = {"username": "kupfer123", "hostname": "test123"}
+    c.file.profiles["testprofile"] = d
+    p = c.get_profile("testprofile")
     assert p
     assert isinstance(p, Profile)
 
 
 def test_get_profile_from_disk(configstate_emptyfile):
-    profile_name = 'testprofile'
-    device = 'sdm845-oneplus-enchilada'
+    profile_name = "testprofile"
+    device = "sdm845-oneplus-enchilada"
     c = configstate_emptyfile
     c.file.profiles.default.device = device
-    d = {'parent': 'default', 'username': 'kupfer123', 'hostname': 'test123'}
+    d = {"parent": "default", "username": "kupfer123", "hostname": "test123"}
     c.file.profiles[profile_name] = d
     filepath = c.runtime.config_file
     assert filepath
@@ -221,5 +257,5 @@ def test_get_profile_from_disk(configstate_emptyfile):
     c.enforce_config_loaded()
     p: Profile = c.get_profile(profile_name)
     assert isinstance(p, Profile)
-    assert 'device' in p
+    assert "device" in p
     assert p.device == device

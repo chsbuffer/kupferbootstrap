@@ -3,12 +3,25 @@ import logging
 from enum import IntFlag
 from typing import Generic, Mapping, Optional, TypeVar
 
-from kupferbootstrap.constants import Arch, ARCHES, REPOSITORIES, KUPFER_BRANCH_MARKER, KUPFER_HTTPS, CHROOT_PATHS
+from kupferbootstrap.constants import (
+    Arch,
+    ARCHES,
+    REPOSITORIES,
+    KUPFER_BRANCH_MARKER,
+    KUPFER_HTTPS,
+    CHROOT_PATHS,
+)
 from kupferbootstrap.generator import generate_pacman_conf_body
 from kupferbootstrap.config.state import config
 
 from .repo import BinaryPackageType, RepoInfo, Repo, LocalRepo, RemoteRepo
-from .repo_config import AbstrRepoConfig, BaseDistro, ReposConfigFile, REPOS_CONFIG_DEFAULT, get_repo_config as _get_repo_config
+from .repo_config import (
+    AbstrRepoConfig,
+    BaseDistro,
+    ReposConfigFile,
+    REPOS_CONFIG_DEFAULT,
+    get_repo_config as _get_repo_config,
+)
 
 
 class DistroLocation(IntFlag):
@@ -17,15 +30,17 @@ class DistroLocation(IntFlag):
     CHROOT = 3
 
 
-RepoType = TypeVar('RepoType', bound=Repo)
+RepoType = TypeVar("RepoType", bound=Repo)
 
 
 class Distro(Generic[RepoType]):
     repos: Mapping[str, RepoType]
     arch: str
 
-    def __init__(self, arch: Arch, repo_infos: dict[str, RepoInfo], scan=False):
-        assert (arch in ARCHES)
+    def __init__(
+        self, arch: Arch, repo_infos: dict[str, RepoInfo], scan=False
+    ):
+        assert arch in ARCHES
         self.arch = arch
         self.repos = dict[str, RepoType]()
         for repo_name, repo_info in repo_infos.items():
@@ -42,20 +57,37 @@ class Distro(Generic[RepoType]):
         Repo(**kwargs)
 
     def get_packages(self) -> dict[str, BinaryPackageType]:
-        """ get packages from all repos, semantically overlaying them"""
+        """get packages from all repos, semantically overlaying them"""
         results = dict[str, BinaryPackageType]()
         for repo in list(self.repos.values())[::-1]:
             assert repo.packages is not None
             results.update(repo.packages)
         return results
 
-    def repos_config_snippet(self, extra_repos: Mapping[str, RepoInfo] = {}) -> str:
+    def repos_config_snippet(
+        self, extra_repos: Mapping[str, RepoInfo] = {}
+    ) -> str:
         extras: list[Repo] = [
-            Repo(name, url_template=info.url_template, arch=self.arch, options=info.options, scan=False) for name, info in extra_repos.items()
+            Repo(
+                name,
+                url_template=info.url_template,
+                arch=self.arch,
+                options=info.options,
+                scan=False,
+            )
+            for name, info in extra_repos.items()
         ]
-        return '\n\n'.join(repo.config_snippet() for repo in (extras + list(self.repos.values())))
+        return "\n\n".join(
+            repo.config_snippet()
+            for repo in (extras + list(self.repos.values()))
+        )
 
-    def get_pacman_conf(self, extra_repos: Mapping[str, RepoInfo] = {}, check_space: bool = True, in_chroot: bool = True):
+    def get_pacman_conf(
+        self,
+        extra_repos: Mapping[str, RepoInfo] = {},
+        check_space: bool = True,
+        in_chroot: bool = True,
+    ):
         body = generate_pacman_conf_body(self.arch, check_space=check_space)
         return body + self.repos_config_snippet(extra_repos)
 
@@ -72,20 +104,23 @@ class Distro(Generic[RepoType]):
 
 
 class LocalDistro(Distro[LocalRepo]):
-
     def _create_repo(self, **kwargs) -> LocalRepo:
         return LocalRepo(**kwargs)
 
 
 class RemoteDistro(Distro[RemoteRepo]):
-
     def _create_repo(self, **kwargs) -> RemoteRepo:
         return RemoteRepo(**kwargs)
 
 
 def get_kupfer(arch: str, url_template: str, scan: bool = False) -> Distro:
-    repos = {name: RepoInfo(url_template=url_template, options={'SigLevel': 'Never'}) for name in REPOSITORIES}
-    remote = not url_template.startswith('file://')
+    repos = {
+        name: RepoInfo(
+            url_template=url_template, options={"SigLevel": "Never"}
+        )
+        for name in REPOSITORIES
+    }
+    remote = not url_template.startswith("file://")
     clss = RemoteDistro if remote else LocalDistro
     distro = clss(
         arch=arch,
@@ -113,7 +148,9 @@ def reset_distro_caches():
         cache.clear()
 
 
-def get_kupfer_url(url: str = KUPFER_HTTPS, branch: Optional[str] = None) -> str:
+def get_kupfer_url(
+    url: str = KUPFER_HTTPS, branch: Optional[str] = None
+) -> str:
     """gets the repo URL for `branch`, getting branch from config if `None` is passed."""
     branch = config.file.pacman.repo_branch if branch is None else branch
     return url.replace(KUPFER_BRANCH_MARKER, branch)
@@ -137,20 +174,29 @@ def get_kupfer_repo_names(local) -> list[str]:
     return results
 
 
-def get_RepoInfo(arch: Arch, repo_config: AbstrRepoConfig, default_url: Optional[str]) -> RepoInfo:
+def get_RepoInfo(
+    arch: Arch, repo_config: AbstrRepoConfig, default_url: Optional[str]
+) -> RepoInfo:
     url = repo_config.remote_url or default_url
     if isinstance(url, dict):
         if arch not in url and not default_url:
-            raise Exception(f"Invalid repo config: Architecture {arch} not in remote_url mapping: {url}")
+            raise Exception(
+                f"Invalid repo config: Architecture {arch} not in remote_url mapping: {url}"
+            )
         url = url.get(arch, default_url)
     assert url
     return RepoInfo(
         url_template=get_kupfer_url(url),
-        options=repo_config.get('options', None) or {},
+        options=repo_config.get("options", None) or {},
     )
 
 
-def get_base_distro(arch: Arch, scan: bool = False, unsigned: bool = True, cache_db: bool = True) -> RemoteDistro:
+def get_base_distro(
+    arch: Arch,
+    scan: bool = False,
+    unsigned: bool = True,
+    cache_db: bool = True,
+) -> RemoteDistro:
     base_distros = get_repo_config().base_distros
     if base_distros is None or arch not in base_distros:
         base_distros = REPOS_CONFIG_DEFAULT.base_distros
@@ -160,8 +206,12 @@ def get_base_distro(arch: Arch, scan: bool = False, unsigned: bool = True, cache
     repos = {}
     for repo, repo_config in distro_config.repos.items():
         if unsigned:
-            repo_config['options'] = (repo_config.get('options', None) or {}) | {'SigLevel': 'Never'}
-        repos[repo] = get_RepoInfo(arch, repo_config, default_url=distro_config.remote_url)
+            repo_config["options"] = (
+                repo_config.get("options", None) or {}
+            ) | {"SigLevel": "Never"}
+        repos[repo] = get_RepoInfo(
+            arch, repo_config, default_url=distro_config.remote_url
+        )
 
     distro = RemoteDistro(arch=arch, repo_infos=repos, scan=False)
     if cache_db:
@@ -188,16 +238,20 @@ def get_kupfer_distro(
         remote = True
         cache = _kupfer_https
         default_url = repo_config.remote_url or KUPFER_HTTPS
-        repos = {repo: get_RepoInfo(arch, conf, default_url) for repo, conf in repo_config.repos.items() if not conf.local_only}
+        repos = {
+            repo: get_RepoInfo(arch, conf, default_url)
+            for repo, conf in repo_config.repos.items()
+            if not conf.local_only
+        }
         cls = RemoteDistro
     elif location in [DistroLocation.CHROOT, DistroLocation.LOCAL]:
         if location == DistroLocation.CHROOT:
             cache = _kupfer_local_chroots
-            pkgdir = CHROOT_PATHS['packages']
+            pkgdir = CHROOT_PATHS["packages"]
         else:
             assert location == DistroLocation.LOCAL
             cache = _kupfer_local
-            pkgdir = config.get_path('packages')
+            pkgdir = config.get_path("packages")
         default_url = f"file://{pkgdir}/$arch/$repo"
         cls = LocalDistro
         repos = {}
@@ -232,13 +286,19 @@ def get_kupfer_distro(
     return item
 
 
-def get_kupfer_https(arch: Arch, scan: bool = False, cache_db: bool = True) -> RemoteDistro:
-    d = get_kupfer_distro(arch, location=DistroLocation.REMOTE, scan=scan, cache_db=cache_db)
+def get_kupfer_https(
+    arch: Arch, scan: bool = False, cache_db: bool = True
+) -> RemoteDistro:
+    d = get_kupfer_distro(
+        arch, location=DistroLocation.REMOTE, scan=scan, cache_db=cache_db
+    )
     assert isinstance(d, RemoteDistro)
     return d
 
 
-def get_kupfer_local(arch: Optional[Arch] = None, scan: bool = False, in_chroot: bool = True) -> LocalDistro:
+def get_kupfer_local(
+    arch: Optional[Arch] = None, scan: bool = False, in_chroot: bool = True
+) -> LocalDistro:
     arch = arch or config.runtime.arch
     assert arch
     location = DistroLocation.CHROOT if in_chroot else DistroLocation.LOCAL
