@@ -51,6 +51,7 @@ def build(
     arch: Optional[Arch] = None,
     rebuild_dependants: bool = False,
     try_download: bool = False,
+    allow_override_for_arches_all: bool = True,
 ):
     config.enforce_config_loaded()
     enforce_wrap()
@@ -72,6 +73,7 @@ def build(
         enable_crossdirect=config.file.build.crossdirect,
         enable_ccache=config.file.build.ccache,
         clean_chroot=config.file.build.clean_mode,
+        allow_override_for_arches_all=allow_override_for_arches_all,
     )
 
 
@@ -291,6 +293,13 @@ def cmd_init(
     default=False,
     help="Don't try downloading packages from online repos before building",
 )
+@click.option(
+    "--allow-extra-arches/--disallow-extra-arches",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Allow building PKGs for other stated arches if the PKGBUILD sets _arches=all",
+)
 @click.argument("paths", nargs=-1)
 def cmd_build(
     paths: list[str],
@@ -298,6 +307,7 @@ def cmd_build(
     arch: Optional[Arch] = None,
     rebuild_dependants: bool = False,
     no_download: bool = False,
+    allow_extra_arches: bool = True,
 ):
     """
     Build packages (and dependencies) by paths as required.
@@ -315,6 +325,7 @@ def cmd_build(
         arch=arch,
         rebuild_dependants=rebuild_dependants,
         try_download=not no_download,
+        allow_override_for_arches_all=allow_extra_arches,
     )
 
 

@@ -109,7 +109,12 @@ def init_prebuilts(arch: Arch):
 
 
 def generate_dependency_chain(
-    package_repo: dict[str, Pkgbuild], to_build: Iterable[Pkgbuild]
+    package_repo: dict[str, Pkgbuild],
+    to_build: Iterable[Pkgbuild],
+    arch: Arch,
+    *,
+    allow_override_for_arches_all: bool = True,
+    allow_skipping_build_packages: bool = False,
 ) -> list[set[Pkgbuild]]:
     """
     This figures out all dependencies and their sub-dependencies for the selection and adds those packages to the selection.
@@ -120,9 +125,22 @@ def generate_dependency_chain(
     visited_names = set[str]()
     dep_levels: list[set[Pkgbuild]] = [set(), set()]
 
+    def matches_arch(package: Pkgbuild):
+        if "any" in package.arches or arch in package.arches:
+            return True
+        if allow_override_for_arches_all and package.arches_hint == "all":
+            logging.warning(
+                f"Package {package.path!r} lacks arch {arch} but specifies _arches={package.arches_hint}; overriding!"
+            )
+            return True
+        return False
+
     def visit(package: Pkgbuild, visited=visited, visited_names=visited_names):
         visited.add(package)
-        visited_names.update(package.names())
+        if matches_arch(package):
+            visited_names.update(package.names())
+            return True
+        return False
 
     def join_levels(levels: list[set[Pkgbuild]]) -> dict[Pkgbuild, int]:
         result = dict[Pkgbuild, int]()
@@ -139,8 +157,10 @@ def generate_dependency_chain(
                 continue
             elif dep_name in package_repo:
                 dep_pkg = package_repo[dep_name]
-                visit(dep_pkg)
-                yield dep_pkg
+                if dep_pkg in visited:
+                    continue
+                if visit(dep_pkg):
+                    yield dep_pkg
 
     def get_recursive_dependencies(
         package: Pkgbuild, package_repo: dict[str, Pkgbuild] = package_repo
@@ -153,7 +173,16 @@ def generate_dependency_chain(
     logging.debug("Generating dependency chain:")
     # init level 0
     for package in to_build:
-        visit(package)
+        if not visit(package):
+            if not allow_skipping_build_packages:
+                raise Exception(
+                    f"Can't build package {package.path!r} because it's not available for {arch=}.\n"
+                    f"Available arches: {package.arches!r}; package arches hint: {package.arches_hint!r}"
+                )
+            logging.warning(
+                f"Skipping requested package {package.path!r} because it's not available for {arch=}"
+            )
+            continue
         dep_levels[0].add(package)
         logging.debug(f"Adding requested package {package.name}")
         # add dependencies of our requested builds to level 0
@@ -210,6 +239,13 @@ def generate_dependency_chain(
                     continue
                 elif dep_name in package_repo:
                     dep_pkg = package_repo[dep_name]
+                    if dep_pkg in visited:
+                        continue
+                    if not visit(dep_pkg):
+                        logging.warning(
+                            f"Not adding {dep_pkg.path} as dependency because arches don't match: {dep_pkg}"
+                        )
+                        continue
                     logging.debug(
                         f"Adding {pkg.name}'s dependency {dep_name} to level {level}"
                     )
@@ -789,19 +825,30 @@ def get_dependants(
     packages: Iterable[Pkgbuild],
     arch: Arch,
     recursive: bool = True,
+    allow_override_for_arches_all: bool = True,
 ) -> set[Pkgbuild]:
     names = set([pkg.name for pkg in packages])
     to_add = set[Pkgbuild]()
     for pkg in repo.values():
         if set.intersection(names, set(pkg.depends)):
             if not set([arch, "any"]).intersection(pkg.arches):
-                logging.warn(
-                    f"get_dependants: skipping matched pkg {pkg.name} due to wrong arch: {pkg.arches}"
-                )
-                continue
+                if not (
+                    allow_override_for_arches_all and pkg.arches_hint == "all"
+                ):
+                    logging.warn(
+                        f"get_dependants: skipping matched pkg {pkg.name} due to wrong arch: {pkg.arches}"
+                    )
+                    continue
             to_add.add(pkg)
     if recursive and to_add:
-        to_add.update(get_dependants(repo, to_add, arch=arch))
+        to_add.update(
+            get_dependants(
+                repo,
+                to_add,
+                arch=arch,
+                allow_override_for_arches_all=allow_override_for_arches_all,
+            )
+        )
     return to_add
 
 
@@ -824,13 +871,23 @@ def get_unbuilt_package_levels(
     rebuild_dependants: bool = False,
     try_download: bool = False,
     refresh_sources: bool = True,
+    allow_override_for_arches_all: bool = True,
+    allow_skipping_build_packages: bool = False,
 ) -> list[set[Pkgbuild]]:
     repo = repo or discover_pkgbuilds()
     dependants = set[Pkgbuild]()
     if rebuild_dependants:
-        dependants = get_dependants(repo, packages, arch=arch)
+        dependants = get_dependants(
+            repo,
+            packages,
+            arch=arch,
+            allow_override_for_arches_all=allow_override_for_arches_all,
+        )
     package_levels = generate_dependency_chain(
-        repo, set(packages).union(dependants)
+        package_repo=repo,
+        to_build=set(packages).union(dependants),
+        arch=arch,
+        allow_override_for_arches_all=allow_override_for_arches_all,
     )
     build_names = set[str]()
     build_levels = list[set[Pkgbuild]]()
@@ -916,6 +973,8 @@ def build_packages(
     enable_crossdirect: bool = True,
     enable_ccache: bool = True,
     clean_chroot: bool = False,
+    allow_override_for_arches_all: bool = True,
+    allow_skipping_build_packages: bool = False,
 ):
     check_programs_wrap(["makepkg", "pacman", "pacstrap"])
     init_prebuilts(arch)
@@ -926,6 +985,8 @@ def build_packages(
         force=force,
         rebuild_dependants=rebuild_dependants,
         try_download=try_download,
+        allow_override_for_arches_all=allow_override_for_arches_all,
+        allow_skipping_build_packages=allow_skipping_build_packages,
     )
 
     if not build_levels:
@@ -1006,6 +1067,7 @@ def build_packages_by_paths(
     enable_crossdirect: bool = True,
     enable_ccache: bool = True,
     clean_chroot: bool = False,
+    allow_override_for_arches_all: bool = True,
 ):
     if isinstance(paths, str):
         paths = [paths]
@@ -1028,6 +1090,7 @@ def build_packages_by_paths(
         enable_crossdirect=enable_crossdirect,
         enable_ccache=enable_ccache,
         clean_chroot=clean_chroot,
+        allow_override_for_arches_all=allow_override_for_arches_all,
     )
 
 
