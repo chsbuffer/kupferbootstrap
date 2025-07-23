@@ -196,6 +196,7 @@ class Pkgbuild(PackageInfo):
     description: str
     sources_refreshed: bool
     srcinfo_cache: Optional[SrcinfoMetaFile]
+    arches_hint: Optional[str]
 
     def __init__(
         self,
@@ -208,6 +209,7 @@ class Pkgbuild(PackageInfo):
         repo: Optional[str] = None,
         sources_refreshed: bool = False,
         srcinfo_cache: Optional[SrcinfoMetaFile] = None,
+        arches_hint: Optional[str] = None,
     ) -> None:
         """
         Create new Pkgbuild representation for file located at `{relative_path}/PKGBUILD`.
@@ -225,6 +227,7 @@ class Pkgbuild(PackageInfo):
         self.mode = ""
         self.nodeps = False
         self.crossdirect = True
+        self.arches_hint = arches_hint
         self.path = relative_path
         self.pkgver = ""
         self.pkgrel = ""
@@ -261,6 +264,7 @@ class Pkgbuild(PackageInfo):
         self.mode = pkg.mode
         self.nodeps = pkg.nodeps
         self.crossdirect = pkg.crossdirect
+        self.arches_hint = pkg.arches_hint
         self.path = pkg.path
         self.pkgver = pkg.pkgver
         self.pkgrel = pkg.pkgrel
@@ -418,6 +422,7 @@ def parse_pkgbuild(
     base_package.mode = mode
     base_package.nodeps = nodeps
     base_package.repo = relative_pkg_dir.split("/")[0]
+    base_package.arches_hint = srcinfo_cache.build_arches_hint
 
     current: Pkgbuild = base_package
     multi_pkgs = False

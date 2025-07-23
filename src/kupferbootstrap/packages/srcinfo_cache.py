@@ -77,6 +77,7 @@ srcinfo_meta_defaults = {
     "build_mode": None,
     "build_nodeps": None,
     "build_crossdirect": None,
+    "build_arches_hint": None,
 }
 
 
@@ -85,6 +86,7 @@ class SrcinfoMetaFile(JsonFile):
     build_mode: Optional[str]
     build_nodeps: Optional[bool]
     build_crossdirect: Optional[bool]
+    build_arches_hint: Optional[str]
 
     _changed: bool
     _filename: ClassVar[str] = SRCINFO_METADATA_FILE
@@ -197,6 +199,8 @@ class SrcinfoMetaFile(JsonFile):
                 self.build_nodeps = val.lower() == "true"
             elif key == "_crossdirect":
                 self.build_crossdirect = val.lower() == "true"
+            elif key == "_arches":
+                self.build_arches_hint = val
             else:
                 continue
 
