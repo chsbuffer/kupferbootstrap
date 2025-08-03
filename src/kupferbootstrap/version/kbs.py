@@ -1,7 +1,7 @@
 import logging
 import os
 
-from typing import Union
+from typing import NamedTuple, Union
 
 from kupferbootstrap.distro.repo_config import ReposConfigFile
 from kupferbootstrap.utils import git
@@ -20,7 +20,7 @@ def get_kbs_version(kbs_folder: Union[str, None] = None) -> Union[str, None]:
         kbs_folder = os.path.join(os.path.dirname(__file__), "../" * 3)
     try:
         res = git(
-            ["describe", "--tags", "--match", "v*.*.*"],
+            ["describe", "--tags", "--abbrev=7", "--match", "v*.*.*"],
             use_git_dir=True,
             git_dir=os.path.join(kbs_folder, ".git"),
             capture_output=True,
@@ -33,20 +33,72 @@ def get_kbs_version(kbs_folder: Union[str, None] = None) -> Union[str, None]:
                 output
                 or f"[Git failed without output. Return Code: {res.returncode}]"
             )
-        return (res.stdout or b"").decode().strip()
+        ver = (res.stdout or b"").decode().strip()
+        return ver
     except Exception as ex:
         logging.warning(f"Failed to fetch KBS version with git: {ex!s}")
         return None
 
 
+class GitVersionSplit(NamedTuple):
+    base_version: str
+    git_commit_count: int | None
+    git_commit_ref: str | None
+
+
+def split_git_version_info(ver: str) -> GitVersionSplit:
+    splits = ver.rsplit("-", 2)
+    if len(splits) > 2:
+        if (
+            splits[-2].isdecimal()
+            and splits[-1].startswith("g")
+            and (git_suffix := splits[-1][1:])
+            and git_suffix.isalnum()
+        ):
+            ver_orig = ver
+            ver = "-".join(splits[:-2])
+            logging.debug(
+                f"KBS Version: Discarding git suffix {git_suffix!r} from {ver_orig!r}: {ver!r}"
+            )
+            return GitVersionSplit(ver, int(splits[-2]), splits[-1])
+    return GitVersionSplit(ver, None, None)
+
+
 def compare_kbs_version_generic(
-    kbs_version: str,
+    kbs_version: str | None,
     minimum_ver: str | None,
+    *,
+    handle_git_suffix: bool = True,
 ) -> Union[VerComp, None]:
-    if not minimum_ver:
+    if minimum_ver is None or kbs_version is None:
         return None
+    kbs_version, minimum_ver = (
+        s.lstrip("v") for s in (kbs_version, minimum_ver)
+    )
+    if kbs_version == minimum_ver:
+        return VerComp.EQUAL
     try:
-        return semver_compare(minimum_ver.lstrip("v"), kbs_version.lstrip("v"))
+        if not handle_git_suffix:
+            return semver_compare(minimum_ver, kbs_version)
+        min_splits = split_git_version_info(minimum_ver)
+        kbs_splits = split_git_version_info(kbs_version)
+        base_comp = semver_compare(
+            min_splits.base_version, kbs_splits.base_version
+        )
+        if base_comp != VerComp.EQUAL:
+            return base_comp
+        if (min_commits := min_splits.git_commit_count or 0) != (
+            kbs_commits := kbs_splits.git_commit_count or 0
+        ):
+            return (
+                VerComp.RIGHT_NEWER
+                if min_commits < kbs_commits
+                else VerComp.RIGHT_OLDER
+            )
+        logging.warning(
+            f"KBS Version {kbs_version!r} differs from {minimum_ver!r} only in git commit hash, treating as equal"
+        )
+        return VerComp.EQUAL
     except Exception as ex:
         logging.warning(
             f"Failed to compare KBS version {kbs_version!r} to required minimum version {minimum_ver!r}: {ex!r}"

@@ -23,7 +23,7 @@ def test_get_kbs_version():
         ("v0.0.1-rc1", "v0.0.1", VerComp.RIGHT_NEWER),
         ("v0.0.1-rc3", "v0.0.2", VerComp.RIGHT_NEWER),
         ("v0.0.1-rc4", "v0.0.1-rc4-3-g12ab34de", VerComp.RIGHT_NEWER),
-        ("v0.0.1-rc4-3", "v0.0.1-rc4-3-g12ab34de", VerComp.RIGHT_NEWER),
+        ("v0.0.1-rc4-3-g1234567", "v0.0.1-rc4-3-g12ab34de", VerComp.EQUAL),
         ("v0.0.1", "v0.0.1-rc4-3-g12ab34de", VerComp.RIGHT_OLDER),
         ("v0.0.2", "v0.0.1-rc4-3-g12ab34de", VerComp.RIGHT_OLDER),
         ("v0.0.2", None, None),
@@ -31,6 +31,11 @@ def test_get_kbs_version():
         ("v0.0.2", "v1.0.0", VerComp.RIGHT_NEWER),
         ("v0.2.2", "v0.1.0", VerComp.RIGHT_OLDER),
         ("v0.2.2", "v1.0.0", VerComp.RIGHT_NEWER),
+        (
+            "v0.2.0-rc4",
+            "v0.2.0-26-gdb61dee",
+            VerComp.RIGHT_NEWER,
+        ),  # clean rc should be older than non-rc with git commit
     ],
 )
 def test_kbs_version_compare(
