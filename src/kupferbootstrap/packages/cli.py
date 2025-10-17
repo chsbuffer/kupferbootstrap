@@ -3,8 +3,10 @@ import json
 import logging
 import os
 
+from functools import wraps
 from glob import glob
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional, TextIO, Unpack
+from typing_extensions import TypedDict
 
 from kupferbootstrap.config.state import config
 from kupferbootstrap.constants import (
@@ -30,7 +32,11 @@ from kupferbootstrap.utils import download_file, git, sha256sum
 from kupferbootstrap.version.cli import _check_kbs_version
 from kupferbootstrap.wrapper import check_programs_wrap, enforce_wrap
 
-from .build import build_packages_by_paths, init_prebuilts
+from .build import (
+    build_packages_by_paths,
+    get_build_levels_from_paths,
+    init_prebuilts,
+)
 from .pkgbuild import (
     discover_pkgbuilds,
     filter_pkgbuilds,
@@ -43,6 +49,58 @@ SRCINFO_CACHE_FILES = [
     SRCINFO_INITIALISED_FILE,
     SRCINFO_METADATA_FILE,
 ]
+
+
+class BuildCliArgs(TypedDict):
+    paths: list
+    force: bool
+    arch: Optional[Arch]
+    rebuild_dependants: bool
+    no_download: bool
+    allow_extra_arches: bool
+
+
+def cli_build_cmd(
+    f: Callable[[Unpack[BuildCliArgs]], int | None],
+) -> Callable[[Unpack[BuildCliArgs]], int | None]:
+    @click.option(
+        "--force",
+        is_flag=True,
+        default=False,
+        help="Rebuild even if package is already built",
+    )
+    @click.option(
+        "--arch",
+        default=None,
+        required=False,
+        type=click.Choice(ARCHES),
+        help="The CPU architecture to build for",
+    )
+    @click.option(
+        "--rebuild-dependants",
+        is_flag=True,
+        default=False,
+        help="Rebuild packages that depend on packages that will be [re]built",
+    )
+    @click.option(
+        "--no-download",
+        is_flag=True,
+        default=False,
+        help="Don't try downloading packages from online repos before building",
+    )
+    @click.option(
+        "--allow-extra-arches/--disallow-extra-arches",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="Allow building PKGs for other stated arches if the PKGBUILD sets _arches=all",
+    )
+    @click.argument("paths", nargs=-1)
+    @wraps(f)
+    def wrapped(*args, **kwargs) -> int | None:
+        return f(*args, **kwargs)
+
+    return wrapped
 
 
 def build(
@@ -268,39 +326,7 @@ def cmd_init(
 
 
 @cmd_packages.command(name="build")
-@click.option(
-    "--force",
-    is_flag=True,
-    default=False,
-    help="Rebuild even if package is already built",
-)
-@click.option(
-    "--arch",
-    default=None,
-    required=False,
-    type=click.Choice(ARCHES),
-    help="The CPU architecture to build for",
-)
-@click.option(
-    "--rebuild-dependants",
-    is_flag=True,
-    default=False,
-    help="Rebuild packages that depend on packages that will be [re]built",
-)
-@click.option(
-    "--no-download",
-    is_flag=True,
-    default=False,
-    help="Don't try downloading packages from online repos before building",
-)
-@click.option(
-    "--allow-extra-arches/--disallow-extra-arches",
-    is_flag=True,
-    default=True,
-    show_default=True,
-    help="Allow building PKGs for other stated arches if the PKGBUILD sets _arches=all",
-)
-@click.argument("paths", nargs=-1)
+@cli_build_cmd
 def cmd_build(
     paths: list[str],
     force=False,
@@ -479,6 +505,72 @@ def cmd_list():
             f"name: {p.name}; ver: {p.version}; mode: {p.mode}; crossdirect: {p.crossdirect} provides: {p.provides}; replaces: {p.replaces};"
             f"local_depends: {p.local_depends}; depends: {p.depends}"
         )
+
+
+@cmd_packages.command(name="plan")
+@cli_build_cmd
+@click.option("--output-file", required=False, type=click.File(mode="w"))
+def cmd_dump_build_plan(
+    paths: list[str],
+    *,
+    output_file: Optional[TextIO] = None,
+    quiet: bool = False,
+    force=False,
+    arch: Optional[Arch] = None,
+    rebuild_dependants: bool = False,
+    no_download: bool = False,
+    allow_extra_arches: bool = True,
+):
+    """
+    Dump build plan as JSON
+    """
+    config.enforce_config_loaded()
+    enforce_wrap()
+    arch = arch or get_profile_device(hint_or_set_arch=True).arch
+
+    if arch not in ARCHES:
+        raise Exception(
+            f'Unknown architecture "{arch}". Choices: {", ".join(ARCHES)}'
+        )
+    _check_kbs_version(init_pkgbuilds=True)
+    levels = get_build_levels_from_paths(
+        paths=paths or ["all"],
+        arch=arch,
+        force=force,
+        rebuild_dependants=rebuild_dependants,
+        try_download=not no_download,
+        allow_override_for_arches_all=allow_extra_arches,
+    )
+    data: list[dict[str, int | list[dict[str, str]]]] = []
+    for i, level in enumerate(levels, start=1):
+        sorted_level = sorted(level, key=lambda p: p.path)
+        for pkg in level:
+            if not set(pkg.arches).intersection(("any", arch)):
+                logging.warning(
+                    f"Package {pkg.name!r} doesn't have {arch} in {pkg.arches=}; check {pkg.path}/PKGBUILD"
+                )
+        pkgs: list[dict[str, str]] = [
+            {
+                "name": p.name,
+                "path": p.path,
+                "arch": (
+                    list(set(p.arches).intersection(("any", arch))) or [arch]
+                )[0],
+            }
+            for p in sorted_level
+        ]
+        l_data: dict[str, int | list[dict[str, str]]] = {
+            "level": i,
+            "pkgs": pkgs,
+        }
+        data.append(l_data)
+    js = json.dumps(data, indent=2)
+    if not quiet:
+        print("\n\n" + js)
+    if not output_file:
+        return
+    output_file.write(js)
+    logging.info(f"{len(js)} bytes successfully written to {output_file.name}")
 
 
 @cmd_packages.command(name="check")
