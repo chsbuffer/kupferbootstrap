@@ -509,7 +509,17 @@ def cmd_list():
 
 @cmd_packages.command(name="plan")
 @cli_build_cmd
-@click.option("--output-file", required=False, type=click.File(mode="w"))
+@click.option(
+    "--output-file",
+    required=False,
+    type=click.File(mode="w"),
+    help="Write output to specified file instead of stdout",
+)
+@click.option(
+    "--exclude-any-pkgs",
+    is_flag=True,
+    help="Exclude packages with 'any' architecture",
+)
 def cmd_dump_build_plan(
     paths: list[str],
     *,
@@ -520,6 +530,7 @@ def cmd_dump_build_plan(
     rebuild_dependants: bool = False,
     no_download: bool = False,
     allow_extra_arches: bool = True,
+    exclude_any_pkgs: bool = False,
 ):
     """
     Dump build plan as JSON
@@ -542,13 +553,25 @@ def cmd_dump_build_plan(
         allow_override_for_arches_all=allow_extra_arches,
     )
     data: list[dict[str, int | list[dict[str, str]]]] = []
-    for i, level in enumerate(levels, start=1):
-        sorted_level = sorted(level, key=lambda p: p.path)
-        for pkg in level:
+    for i, _level in enumerate(levels):
+        level = []
+        for pkg in _level:
             if not set(pkg.arches).intersection(("any", arch)):
                 logging.warning(
                     f"Package {pkg.name!r} doesn't have {arch} in {pkg.arches=}; check {pkg.path}/PKGBUILD"
                 )
+            if exclude_any_pkgs and "any" in pkg.arches:
+                logging.warning(
+                    f"Ignoring arches='any' PKGBUILD {pkg.path!r} in level {i} as requested"
+                )
+                continue
+            level.append(pkg)
+
+        if not level:
+            logging.warning(f"Ignoring empty level {i}")
+            continue
+
+        sorted_level = sorted(level, key=lambda p: p.path)
         pkgs: list[dict[str, str]] = [
             {
                 "name": p.name,
@@ -560,10 +583,11 @@ def cmd_dump_build_plan(
             for p in sorted_level
         ]
         l_data: dict[str, int | list[dict[str, str]]] = {
-            "level": i,
+            "level": len(data) + 1,
             "pkgs": pkgs,
         }
         data.append(l_data)
+
     js = json.dumps(data, indent=2)
     if not quiet:
         print("\n\n" + js)
