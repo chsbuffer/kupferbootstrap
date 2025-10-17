@@ -962,20 +962,38 @@ def get_unbuilt_package_levels(
     return build_levels
 
 
-def build_packages(
+def get_build_levels_from_paths(
+    paths: list[str] | str,
+    arch: Arch,
+    repo: Optional[dict[str, Pkgbuild]] = None,
+    **kwargs,
+) -> list[set[Pkgbuild]]:
+    if isinstance(paths, str):
+        paths = [paths]
+    assert config.runtime.arch
+    for _arch in set([arch, config.runtime.arch]):
+        init_prebuilts(_arch)
+    packages = filter_pkgbuilds(
+        paths, arch=arch, repo=repo, allow_empty_results=False
+    )
+    return get_build_levels_from_pkgbuilds(
+        packages,
+        arch=arch,
+        repo=repo,
+        **kwargs,
+    )
+
+
+def get_build_levels_from_pkgbuilds(
     packages: Iterable[Pkgbuild],
     arch: Arch,
     repo: Optional[dict[str, Pkgbuild]] = None,
     force: bool = False,
     rebuild_dependants: bool = False,
     try_download: bool = False,
-    enable_crosscompile: bool = True,
-    enable_crossdirect: bool = True,
-    enable_ccache: bool = True,
-    clean_chroot: bool = False,
     allow_override_for_arches_all: bool = True,
     allow_skipping_build_packages: bool = False,
-):
+) -> list[set[Pkgbuild]]:
     check_programs_wrap(["makepkg", "pacman", "pacstrap"])
     init_prebuilts(arch)
     build_levels = get_unbuilt_package_levels(
@@ -991,10 +1009,56 @@ def build_packages(
 
     if not build_levels:
         logging.info("Everything built already")
+    return build_levels
+
+
+def build_packages(
+    packages: Iterable[Pkgbuild],
+    arch: Arch,
+    repo: Optional[dict[str, Pkgbuild]] = None,
+    force: bool = False,
+    rebuild_dependants: bool = False,
+    try_download: bool = False,
+    enable_crosscompile: bool = True,
+    enable_crossdirect: bool = True,
+    enable_ccache: bool = True,
+    clean_chroot: bool = False,
+    allow_override_for_arches_all: bool = True,
+    allow_skipping_build_packages: bool = False,
+):
+    build_levels = get_build_levels_from_pkgbuilds(
+        packages,
+        arch=arch,
+        repo=repo,
+        force=force,
+        rebuild_dependants=rebuild_dependants,
+        try_download=try_download,
+        allow_override_for_arches_all=allow_override_for_arches_all,
+        allow_skipping_build_packages=allow_skipping_build_packages,
+    )
+    if not build_levels:
         return
+    return build_packages_by_levels(
+        build_levels,
+        arch=arch,
+        repo=repo,
+        enable_crosscompile=enable_crosscompile,
+        enable_crossdirect=enable_crossdirect,
+        enable_ccache=enable_ccache,
+        clean_chroot=clean_chroot,
+    )
 
+
+def build_packages_by_levels(
+    build_levels: list[set[Pkgbuild]],
+    arch: Arch,
+    repo: Optional[dict[str, Pkgbuild]] = None,
+    enable_crosscompile: bool = True,
+    enable_crossdirect: bool = True,
+    enable_ccache: bool = True,
+    clean_chroot: bool = False,
+):
     logging.info(f"Build plan made:\n{get_pkg_levels_str(build_levels)}")
-
     total_levels = len(build_levels)
     package_bar = get_levels_bar(
         desc=f"Building pkgs ({arch})",
