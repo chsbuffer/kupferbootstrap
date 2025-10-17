@@ -96,7 +96,7 @@ class SrcinfoMetaFile(JsonFile):
         "tries to parse the srcinfo_meta.json file in the specified pkgbuild dir"
         metadata_raw = SrcinfoMetaFile._read_file(relative_pkg_dir)
         return SrcinfoMetaFile.fromDict(
-            metadata_raw
+            (metadata_raw or {})
             | {
                 "_relative_path": relative_pkg_dir,
                 "_changed": False,

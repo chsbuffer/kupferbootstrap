@@ -187,8 +187,8 @@ class Pkgbuild(PackageInfo):
     replaces: list[str]
     local_depends: list[str]
     repo: str
-    mode: str
-    nodeps: bool
+    mode: str | None
+    nodeps: bool | None
     crossdirect: bool
     path: str
     pkgver: str
