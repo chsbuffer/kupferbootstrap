@@ -486,7 +486,7 @@ class Chroot(AbstractChroot):
         result = self.run_cmd(install_script)
         assert isinstance(result, subprocess.CompletedProcess)
         if result.returncode != 0:
-            raise Exception(f"Failed to setup user {user} in self.name")
+            raise Exception(f"Failed to setup user {user} in {self.name}")
 
     def get_uid(self, user: Union[str, int]) -> int:
         if isinstance(user, int):
