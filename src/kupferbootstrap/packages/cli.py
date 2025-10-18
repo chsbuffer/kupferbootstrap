@@ -510,6 +510,7 @@ def cmd_list():
 @cmd_packages.command(name="plan")
 @cli_build_cmd
 @click.option(
+    "-o",
     "--output-file",
     required=False,
     type=click.File(mode="w"),
@@ -588,7 +589,7 @@ def cmd_dump_build_plan(
         }
         data.append(l_data)
 
-    js = json.dumps(data, indent=2)
+    js = json.dumps({"arch": arch, "levels": data}, indent=2)
     if not quiet:
         print("\n\n" + js)
     if not output_file:
