@@ -23,7 +23,7 @@ ENV KUPFERBOOTSTRAP_WRAPPED=DOCKER
 ENV PATH=/app/bin:/src/local/bin:/usr/local/bin:/usr/bin
 WORKDIR /src
 
-ADD src pyproject.toml requirements.txt Makefile .
+ADD src pyproject.toml requirements.txt Makefile ./
 RUN python3 -m venv /app
 RUN --mount=type=bind,source=src/kupferbootstrap,target=/src/src/kupferbootstrap  /app/bin/pip3 install -e '.[all]'
 RUN mkdir -p /app/local/bin
@@ -40,4 +40,4 @@ RUN /app/bin/python3 -c "from kupferbootstrap.distro import distro; distro.get_k
 
 
 FROM kbs_fully_installed AS kbs_with_git
-ADD --link .git .gitignore .
+ADD --link .git .gitignore ./
