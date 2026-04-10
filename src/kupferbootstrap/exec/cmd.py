@@ -100,11 +100,11 @@ def generate_cmd_su(
         if switch_user != "root" or force_su:
             cmd = [
                 "/bin/su",
-                switch_user,
                 "-s",
                 "/bin/bash",
                 "-c",
                 flatten_shell_script(cmd, shell_quote_items=True),
+                switch_user,
             ]
         if (
             current_uid != 0 or force_elevate
