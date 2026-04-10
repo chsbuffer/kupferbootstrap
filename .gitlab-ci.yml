@@ -61,14 +61,11 @@ pytest:
 
 build_docker:
   stage: build
-  image: docker:latest
-  services:
-    - name: docker:dind
-      command: ["--mtu=1100"]  # very low, safe value -.-
-  variables:
-    DOCKER_TLS_CERTDIR: ""
+  image: quay.io/podman/stable:latest
+  before_script:
+    - ln -srfv $(type -P podman) /usr/local/bin/docker
   script:
-    - 'docker build --pull -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}" .'
+    - 'docker build --pull --cache-from "${CI_REGISTRY_IMAGE}" -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}" .'
     - 'echo "running sanity check" && docker run -t --rm "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" kupferbootstrap --help'
   only:
     - branches
@@ -79,11 +76,13 @@ build_docker:
 push_docker:
   extends: build_docker
   before_script:
+    - !reference [build_docker, before_script]
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
     - !reference [build_docker, script]
-    - if [[ "$CI_COMMIT_REF_NAME" == "main" ]]; then docker image tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" "${CI_REGISTRY_IMAGE}:latest"; fi
-    - docker push -a "${CI_REGISTRY_IMAGE}"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
+    - if [[ "$CI_COMMIT_REF_NAME" == "main" ]]; then (set -x && docker image tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" "${CI_REGISTRY_IMAGE}:latest" && docker image push "${CI_REGISTRY_IMAGE}:latest") ; fi
   only:
     - main
     - dev
