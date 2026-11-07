@@ -444,6 +444,11 @@ def check_package_version_built(
     )
 
     if refresh_sources:
+        # Matching binaries do not require their original sources to exist.
+        if check_package_version_built(
+            package, arch, try_download=try_download, refresh_sources=False
+        ):
+            return True
         setup_sources(package)
 
     missing = True
@@ -674,7 +679,7 @@ def build_package(
     build_user: str = "kupfer",
     repo: Optional[dict[str, Pkgbuild]] = None,
 ):
-    makepkg_compile_opts = ["--holdver"]
+    makepkg_compile_opts = ["--holdver", "--cleanbuild"]
     makepkg_conf_path = "etc/makepkg.conf"
     repo_dir = repo_dir if repo_dir else config.get_path("pkgbuilds")
     foreign_arch = config.runtime.arch != arch
